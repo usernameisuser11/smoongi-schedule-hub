@@ -1,0 +1,16 @@
+{
+  "name": "smoongi-schedule-hub",
+  "version": "0.1.0",
+  "private": true,
+  "main": "server/academic-schedule-service.js",
+  "scripts": {
+    "start": "node server/academic-schedule-service.js",
+    "dev": "node server/academic-schedule-service.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.12.0"
+  }
+}

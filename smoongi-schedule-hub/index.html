@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>수뭉이 일정함</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <nav class="nav">
+          <div class="brand"><span>SMU</span><strong>수뭉이 일정함</strong></div>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <div class="hero-grid">
+          <div>
+            <p class="eyebrow">상명대 일정 · 질문 통합 허브</p>
+            <h1>놓치기 쉬운 신청 일정과 질문을 한 곳에서 확인해요</h1>
+            <p class="lead">학사일정, HUSS, K-MOOC, 바이오헬스, 비교과 일정을 모아두고 자주 헷갈리는 질문은 쉽게 정리합니다.</p>
+            <div class="hero-stickers" aria-hidden="true">
+              <img src="./assets/smoongi-small-wide.png" alt="" />
+              <img src="./assets/smoongi-desk-card.png" alt="" />
+              <img src="./assets/smoongi-autumn-wide.png" alt="" />
+              <img src="./assets/smoongi-main-face.png" alt="" />
+            </div>
+            <form id="askForm" class="ask">
+              <input id="questionInput" placeholder="예: 장바구니 1차랑 2차 차이가 뭐야?" />
+              <button>질문하기</button>
+            </form>
+            <p class="caution">AI 답변은 참고용입니다. 세부 시간과 대상은 공식 공지를 다시 확인하세요.</p>
+          </div>
+          <aside class="mascot-card">
+            <img src="./assets/smoongi-main.png" alt="상명대학교 수뭉이" />
+            <strong>이번 주 확인</strong>
+            <span id="nextItem">일정 불러오는 중</span>
+          </aside>
+        </div>
+      </section>
+
+      <section class="mascot-strip" aria-label="수뭉이 안내">
+        <div>
+          <img src="./assets/smoongi-main-card.png" alt="" />
+          <span>학사</span>
+        </div>
+        <div>
+          <img src="./assets/smoongi-desk-face.png" alt="" />
+          <span>신청</span>
+        </div>
+        <div>
+          <img src="./assets/smoongi-cover-desk.png" alt="" />
+          <span>FAQ</span>
+        </div>
+        <div>
+          <img src="./assets/smoongi-cover-autumn.png" alt="" />
+          <span>비교과</span>
+        </div>
+        <div>
+          <img src="./assets/smoongi-autumn.png" alt="" />
+          <span>공지</span>
+        </div>
+      </section>
+
+      <section class="guide">
+        <article><img src="./assets/smoongi-small.png" alt="" /><strong>마감부터 보기</strong><span>D-Day와 날짜를 먼저 확인</span></article>
+        <article><img src="./assets/smoongi-desk.png" alt="" /><strong>대상 확인</strong><span>나한테 해당되는 일정인지 확인</span></article>
+        <article><img src="./assets/smoongi-autumn.png" alt="" /><strong>출처 확인</strong><span>세부 시간은 공식 공지 기준</span></article>
+      </section>
+
+      <section class="stats">
+        <article><span>등록 일정</span><strong id="itemCount">0</strong></article>
+        <article><span>FAQ</span><strong id="faqCount">0</strong></article>
+        <article><span>확인 필요</span><strong id="checkCount">0</strong></article>
+      </section>
+
+      <section id="answer" class="answer hidden"></section>
+
+      <section class="layout">
+        <aside class="panel">
+          <h2>카테고리</h2>
+          <div id="filters" class="filters"></div>
+          <input id="searchInput" class="search" placeholder="HUSS, 케이묵, 수강신청..." />
+        </aside>
+
+        <section class="panel">
+          <div class="heading">
+            <div><p class="eyebrow">Schedule</p><h2>일정 모아보기</h2></div>
+            <select id="sortSelect"><option value="soon">가까운 일정순</option><option value="category">카테고리순</option></select>
+          </div>
+          <div id="items" class="items"></div>
+        </section>
+      </section>
+
+      <section id="faq" class="panel">
+        <p class="eyebrow">FAQ</p>
+        <h2>학생들이 자주 헷갈리는 질문</h2>
+        <div id="faqs" class="faqs"></div>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
