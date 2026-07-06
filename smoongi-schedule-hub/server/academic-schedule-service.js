@@ -7,6 +7,7 @@ const PORT = Number(process.env.PORT || 4174);
 const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 1000 * 60 * 60 * 12);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, ".cache");
 const CACHE_FILE = path.join(DATA_DIR, "academic-schedules.json");
+const STATIC_ROOT = path.resolve(__dirname, "..");
 const SMU_CALENDAR_URLS = {
   seoul: process.env.SMU_SEOUL_CALENDAR_URL || "https://www.smu.ac.kr/cs/admission/calendar.do",
   cheonan:
@@ -34,13 +35,81 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" || req.method === "HEAD") {
+    serveStaticFile(req, res, url.pathname);
+    return;
+  }
+
   sendJson(res, { ok: false, error: "Not found" }, 404);
 });
 
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`Moayo Campus academic schedule API: http://localhost:${PORT}`);
+    console.log(`Smoongi Schedule Hub: http://localhost:${PORT}`);
   });
+}
+
+function serveStaticFile(req, res, requestPath) {
+  const pathname = decodeURIComponent(requestPath.split("?")[0]);
+  const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+  const filePath = path.resolve(STATIC_ROOT, relativePath);
+
+  if (!filePath.startsWith(STATIC_ROOT)) {
+    sendJson(res, { ok: false, error: "Not found" }, 404);
+    return;
+  }
+
+  fs.stat(filePath, (statError, stat) => {
+    if (statError || !stat.isFile()) {
+      const indexPath = path.join(STATIC_ROOT, "index.html");
+      fs.readFile(indexPath, (indexError, indexBuffer) => {
+        if (indexError) {
+          sendJson(res, { ok: false, error: "Not found" }, 404);
+          return;
+        }
+        sendBuffer(res, indexBuffer, "text/html; charset=utf-8", req.method);
+      });
+      return;
+    }
+
+    fs.readFile(filePath, (readError, buffer) => {
+      if (readError) {
+        sendJson(res, { ok: false, error: "Not found" }, 404);
+        return;
+      }
+      sendBuffer(res, buffer, getContentType(filePath), req.method);
+    });
+  });
+}
+
+function sendBuffer(res, buffer, contentType, method = "GET") {
+  res.writeHead(200, {
+    "Content-Type": contentType,
+    "Cache-Control": "no-cache",
+  });
+  if (method === "HEAD") {
+    res.end();
+    return;
+  }
+  res.end(buffer);
+}
+
+function getContentType(filePath) {
+  const extension = path.extname(filePath).toLowerCase();
+  return (
+    {
+      ".html": "text/html; charset=utf-8",
+      ".js": "text/javascript; charset=utf-8",
+      ".css": "text/css; charset=utf-8",
+      ".json": "application/json; charset=utf-8",
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".svg": "image/svg+xml",
+      ".ico": "image/x-icon",
+      ".txt": "text/plain; charset=utf-8",
+    }[extension] || "application/octet-stream"
+  );
 }
 
 async function getAcademicSchedules({ campus = "seoul", year, force = false }) {
