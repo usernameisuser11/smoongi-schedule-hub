@@ -52,10 +52,10 @@ const categories = [
     image: smoongiAssets.academic,
     description: "개강, 종강, 시험기간, 등록 같은 학교 공통 일정",
     items: [
-      { title: "학사일정", url: "https://www.smu.ac.kr/ko/life/academicCalendar.do" },
-      { title: "상명 Q&A", url: "https://www.smu.ac.kr/lounge/qna/faq.do" },
-      { title: "행정서식", url: "https://www.smu.ac.kr/ko/life/forms.do" },
-      { title: "통합공지", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
+      { title: "학사일정", url: "https://www.smu.ac.kr/kor/life/academicCalendar.do" },
+      { title: "학사 안내", url: "https://www.smu.ac.kr/kor/life/onlineGuide.do" },
+      { title: "상명 Q&A", url: "https://www.smu.ac.kr/kor/life/faq.do" },
+      { title: "행정서식", url: "https://www.smu.ac.kr/kor/life/administration.do" },
     ],
   },
   {
@@ -65,9 +65,9 @@ const categories = [
     description: "수강신청, HUSS, 바이오헬스, K-MOOC 신청 확인",
     items: [
       { title: "수강신청", url: "https://sugang.smu.ac.kr/" },
-      { title: "HUSS 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=HUSS" },
+      { title: "HUSS 공지 확인", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
       { title: "바이오헬스", url: "https://www.smu.ac.kr/biohealth/index.do" },
-      { title: "K-MOOC 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=K-MOOC" },
+      { title: "K-MOOC 공지 확인", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
     ],
   },
   {
@@ -76,8 +76,7 @@ const categories = [
     image: smoongiAssets.extracurricular,
     description: "비교과, 마일리지, 진로·취업 프로그램",
     items: [
-      { title: "비교과 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=%EB%B9%84%EA%B5%90%EA%B3%BC" },
-      { title: "마일리지 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=%EB%A7%88%EC%9D%BC%EB%A6%AC%EC%A7%80" },
+      { title: "비교과/마일리지", url: "https://extracur.smu.ac.kr/extracur/index.do" },
       { title: "피어오름", url: "https://peerorum.smu.ac.kr/" },
       { title: "SMe 포트폴리오", url: "https://smcareer.smu.ac.kr/" },
     ],
@@ -86,12 +85,12 @@ const categories = [
     id: "notice",
     title: "공지",
     image: smoongiAssets.notice,
-    description: "통합공지, 학사, 장학, 행사 공지 확인",
+    description: "통합공지, 학사운영, 장학 공지 확인",
     items: [
       { title: "통합공지", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
-      { title: "장학 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=%EC%9E%A5%ED%95%99" },
-      { title: "학사 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=%ED%95%99%EC%82%AC" },
-      { title: "상명행사", url: "https://www.smu.ac.kr/lounge/event/event.do" },
+      { title: "등록/장학 공지", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
+      { title: "학사운영", url: "https://www.smu.ac.kr/search/search.do?menu=%ED%86%B5%ED%95%A9%EA%B2%80%EC%83%89&qt=%ED%95%99%EC%82%AC%EC%9A%B4%EC%98%81" },
+      { title: "상명 Q&A", url: "https://www.smu.ac.kr/kor/life/faq.do" },
     ],
   },
   {
@@ -114,8 +113,8 @@ const categories = [
     items: [
       { title: "학술정보관", url: "https://lib.smu.ac.kr/" },
       { title: "학생생활관", url: "https://dormitory.smu.ac.kr/dormi/index.do" },
-      { title: "식당메뉴 검색", url: "https://www.smu.ac.kr/search/front/Search.jsp?qt=%EC%8B%9D%EB%8B%B9%EB%A9%94%EB%89%B4" },
-      { title: "버스안내 검색", url: "https://www.smu.ac.kr/search/front/Search.jsp?qt=%EB%B2%84%EC%8A%A4%EC%95%88%EB%82%B4" },
+      { title: "식당메뉴", url: "https://www.smu.ac.kr/kor/life/restaurant.do" },
+      { title: "버스안내", url: "https://www.smu.ac.kr/kor/life/ShuttleBus.do#tab18443_" },
     ],
   },
 ];
@@ -139,7 +138,7 @@ const checkCards = [
     description: "학년, 캠퍼스, 전공, 참여 조건을 먼저 확인해요.",
     answer: "대상 확인에서는 학년, 캠퍼스, 전공 제한, 중복 참여 가능 여부를 먼저 봐야 해요.",
     links: [
-      { title: "상명 Q&A", url: "https://www.smu.ac.kr/lounge/qna/faq.do" },
+      { title: "상명 Q&A", url: "https://www.smu.ac.kr/kor/life/faq.do" },
       { title: "통합공지", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
     ],
   },
@@ -288,7 +287,7 @@ function getAiResponse(question) {
   if (text.includes("huss") || text.includes("허스")) {
     return {
       title: "HUSS 관련 안내",
-      message: "HUSS 신청 일정은 통합공지에서 HUSS 키워드로 확인하는 방식이 가장 안전해요.",
+      message: "HUSS 신청 일정은 상명대 통합공지로 이동한 뒤 HUSS 키워드로 검색하는 방식이 가장 안전해요.",
       links: categories.find((category) => category.id === "apply").items.filter((link) => link.title.includes("HUSS")),
     };
   }
