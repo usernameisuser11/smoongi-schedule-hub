@@ -1,304 +1,491 @@
 const fs = require("node:fs");
 const http = require("node:http");
+const https = require("node:https");
 const path = require("node:path");
 
 const PORT = Number(process.env.PORT || 4174);
-const ROOT = path.join(__dirname, "..");
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
-const ADMIN_KEY = process.env.ADMIN_KEY || "";
+const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 1000 * 60 * 60 * 12);
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, ".cache");
+const CACHE_FILE = path.join(DATA_DIR, "academic-schedules.json");
+const SMU_CALENDAR_URLS = {
+  seoul: process.env.SMU_SEOUL_CALENDAR_URL || "https://www.smu.ac.kr/cs/admission/calendar.do",
+  cheonan:
+    process.env.SMU_CHEONAN_CALENDAR_URL || "https://www.smu.ac.kr/software/admission/calendar.do",
+};
 
-let poolPromise;
-let dbReady;
+let memoryCache = loadCacheFromDisk() || {
+  schedules: {},
+};
 
 const server = http.createServer(async (req, res) => {
-  try {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    if (req.method === "OPTIONS") return sendJson(res, {});
+  const url = new URL(req.url, `http://${req.headers.host}`);
 
-    if (url.pathname === "/api/health") {
-      return sendJson(res, { ok: true, db: Boolean(await getPool()), ai: Boolean(GEMINI_API_KEY) });
-    }
-    if (url.pathname === "/api/items" && req.method === "GET") {
-      await ensureDb();
-      return sendJson(res, { ok: true, items: await listItems() });
-    }
-    if (url.pathname === "/api/faqs" && req.method === "GET") {
-      await ensureDb();
-      return sendJson(res, { ok: true, faqs: await listFaqs() });
-    }
-    if (url.pathname === "/api/ask" && req.method === "POST") {
-      await ensureDb();
-      const body = await readJson(req);
-      return sendJson(res, await answerQuestion(String(body.question || "").trim()));
-    }
-    if (url.pathname === "/api/admin/items" && req.method === "POST") {
-      requireAdmin(req);
-      await ensureDb();
-      const item = normalizeItem(await readJson(req));
-      const pool = await getPool();
-      if (pool) await upsertItem(pool, item);
-      else seedItems.unshift(item);
-      return sendJson(res, { ok: true, item }, 201);
-    }
-    if (url.pathname === "/api/admin/faqs" && req.method === "POST") {
-      requireAdmin(req);
-      await ensureDb();
-      const faq = normalizeFaq(await readJson(req));
-      const pool = await getPool();
-      if (pool) await upsertFaq(pool, faq);
-      else seedFaqs.unshift(faq);
-      return sendJson(res, { ok: true, faq }, 201);
-    }
-
-    return serveStatic(url.pathname, res);
-  } catch (error) {
-    sendJson(res, { ok: false, error: error.message }, error.statusCode || 500);
+  if (req.method === "OPTIONS") {
+    sendJson(res, {});
+    return;
   }
+
+  if (url.pathname === "/api/academic-schedules") {
+    const year = url.searchParams.get("year") || String(new Date().getFullYear());
+    const campus = url.searchParams.get("campus") || "seoul";
+    const force = url.searchParams.get("refresh") === "true";
+    const payload = await getAcademicSchedules({ campus, year, force });
+    sendJson(res, payload, payload.ok ? 200 : 206);
+    return;
+  }
+
+  sendJson(res, { ok: false, error: "Not found" }, 404);
 });
 
 if (require.main === module) {
-  server.listen(PORT, () => console.log(`Smoongi Schedule Hub: http://localhost:${PORT}`));
-}
-
-async function getPool() {
-  if (!process.env.DATABASE_URL) return null;
-  if (!poolPromise) {
-    poolPromise = (async () => {
-      try {
-        const { Pool } = require("pg");
-        return new Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: process.env.PGSSL === "false" ? false : { rejectUnauthorized: false },
-        });
-      } catch {
-        return null;
-      }
-    })();
-  }
-  return poolPromise;
-}
-
-async function ensureDb() {
-  if (!dbReady) dbReady = initDb();
-  return dbReady;
-}
-
-async function initDb() {
-  const pool = await getPool();
-  if (!pool) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS info_items (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      category TEXT NOT NULL,
-      start_date DATE,
-      end_date DATE,
-      summary TEXT NOT NULL DEFAULT '',
-      source_label TEXT NOT NULL DEFAULT '',
-      source_url TEXT NOT NULL DEFAULT '',
-      verified_at TIMESTAMPTZ,
-      needs_verification BOOLEAN NOT NULL DEFAULT false,
-      tags TEXT NOT NULL DEFAULT '',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS faqs (
-      id TEXT PRIMARY KEY,
-      question TEXT NOT NULL,
-      answer TEXT NOT NULL,
-      category TEXT NOT NULL,
-      caution TEXT NOT NULL DEFAULT '',
-      tags TEXT NOT NULL DEFAULT '',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS question_logs (
-      id BIGSERIAL PRIMARY KEY,
-      question TEXT NOT NULL,
-      answer TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
-  const itemCount = await pool.query("SELECT COUNT(*)::int AS count FROM info_items");
-  if (itemCount.rows[0].count === 0) for (const item of seedItems) await upsertItem(pool, item);
-  const faqCount = await pool.query("SELECT COUNT(*)::int AS count FROM faqs");
-  if (faqCount.rows[0].count === 0) for (const faq of seedFaqs) await upsertFaq(pool, faq);
-}
-
-async function listItems() {
-  const pool = await getPool();
-  if (!pool) return seedItems.sort(compareItems);
-  const { rows } = await pool.query("SELECT * FROM info_items ORDER BY start_date NULLS LAST, category, title");
-  return rows.map(mapItem);
-}
-
-async function listFaqs() {
-  const pool = await getPool();
-  if (!pool) return seedFaqs;
-  const { rows } = await pool.query("SELECT * FROM faqs ORDER BY category, question");
-  return rows.map(mapFaq);
-}
-
-async function answerQuestion(question) {
-  if (!question) {
-    const error = new Error("질문을 입력해주세요.");
-    error.statusCode = 400;
-    throw error;
-  }
-  const [items, faqs] = await Promise.all([listItems(), listFaqs()]);
-  const relatedItems = rank(question, items).slice(0, 5);
-  const relatedFaqs = rank(question, faqs).slice(0, 4);
-  const answer = GEMINI_API_KEY
-    ? await askGemini(question, relatedItems, relatedFaqs)
-    : fallbackAnswer(relatedItems, relatedFaqs);
-  const pool = await getPool();
-  if (pool) await pool.query("INSERT INTO question_logs (question, answer) VALUES ($1,$2)", [question, answer]);
-  return { ok: true, question, answer, relatedItems, relatedFaqs, ai: Boolean(GEMINI_API_KEY) };
-}
-
-async function askGemini(question, items, faqs) {
-  const prompt = `상명대학교 서울캠퍼스 학생을 위한 일정 안내 답변을 작성해라.
-등록 자료에 없는 날짜와 대상은 추측하지 말고 공식 공지 확인 필요라고 말해라.
-
-질문: ${question}
-등록 일정: ${JSON.stringify(items)}
-등록 FAQ: ${JSON.stringify(faqs)}
-
-답변은 한국어로 짧게 작성하고 마지막에 공식 공지 확인 문구를 포함해라.`;
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2 } }),
+  server.listen(PORT, () => {
+    console.log(`Moayo Campus academic schedule API: http://localhost:${PORT}`);
   });
-  if (!response.ok) return fallbackAnswer(items, faqs);
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.map((part) => part.text).join("\n").trim() || fallbackAnswer(items, faqs);
 }
 
-function fallbackAnswer(items, faqs) {
-  const lines = [];
-  if (faqs[0]) lines.push(faqs[0].answer);
-  if (items[0]) lines.push(`${items[0].title}: ${items[0].startDate ? `${items[0].startDate}${items[0].endDate && items[0].endDate !== items[0].startDate ? `~${items[0].endDate}` : ""}` : "날짜 확인 필요"}`);
-  if (!lines.length) lines.push("등록된 자료에서 바로 연결되는 내용을 찾지 못했습니다.");
-  lines.push("세부 시간, 대상, 변경사항은 반드시 학교 공식 공지를 확인해주세요.");
-  return lines.join("\n\n");
+async function getAcademicSchedules({ campus = "seoul", year, force = false }) {
+  const cacheKey = `${campus}:${year}`;
+  const cached = memoryCache.schedules[cacheKey];
+  const freshEnough = cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
+
+  if (!force && freshEnough) {
+    return {
+      ...cached.payload,
+      cache: "hit",
+    };
+  }
+
+  try {
+    const collected = await collectOfficialAcademicSchedules({ campus, year });
+    const payload = {
+      ok: true,
+      campus,
+      year,
+      source: collected.source,
+      fetchedAt: new Date().toISOString(),
+      events: collected.events,
+      warnings: collected.warnings,
+    };
+
+    memoryCache.schedules[cacheKey] = {
+      fetchedAt: Date.now(),
+      payload,
+    };
+    saveCacheToDisk(memoryCache);
+    return {
+      ...payload,
+      cache: "refresh",
+    };
+  } catch (error) {
+    if (cached) {
+      return {
+        ...cached.payload,
+        ok: true,
+        cache: "stale",
+        warning: `자동 수집 실패, 마지막 캐시 사용: ${error.message}`,
+      };
+    }
+
+    return {
+      ok: false,
+      campus,
+      year,
+      source: "fallback",
+      fetchedAt: new Date().toISOString(),
+      error: error.message,
+      events: getFallbackEvents(year),
+      cache: "fallback",
+      warnings: ["자동 수집 실패로 fallback 데이터를 사용합니다."],
+    };
+  }
 }
 
-function rank(question, list) {
-  const tokens = String(question).toLowerCase().split(/\s+/).filter((token) => token.length > 1);
-  return list
-    .map((item) => ({ item, score: tokens.reduce((sum, token) => sum + (searchText(item).includes(token) ? 1 : 0), 0) }))
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(({ item }) => item);
+async function collectOfficialAcademicSchedules({ campus, year }) {
+  const url = SMU_CALENDAR_URLS[campus] || SMU_CALENDAR_URLS.seoul;
+  const warnings = [];
+
+  const endpointEvents = await tryConfiguredJsonEndpoints({ campus, year, warnings });
+  if (endpointEvents.length > 0) {
+    return {
+      source: "상명대 공식 학사일정 JSON 엔드포인트",
+      events: endpointEvents,
+      warnings,
+    };
+  }
+
+  const html = await fetchText(url);
+  const htmlEvents = parseSmuCalendarHtml(html, year);
+  if (htmlEvents.length > 0) {
+    return {
+      source: "상명대 공식 학사일정 HTML 자동 수집",
+      events: htmlEvents,
+      warnings,
+    };
+  }
+
+  const renderedEvents = await tryRenderedPageCollection({ url, year, warnings });
+  if (renderedEvents.length > 0) {
+    return {
+      source: "상명대 공식 학사일정 JS 렌더링 자동 수집",
+      events: renderedEvents,
+      warnings,
+    };
+  }
+
+  throw new Error("상명대 공식 페이지에서 일정 항목을 찾지 못했습니다.");
 }
 
-async function upsertItem(pool, item) {
-  await pool.query(
-    `INSERT INTO info_items (id,title,category,start_date,end_date,summary,source_label,source_url,verified_at,needs_verification,tags)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-     ON CONFLICT (id) DO UPDATE SET title=$2, category=$3, start_date=$4, end_date=$5, summary=$6, source_label=$7, source_url=$8, verified_at=$9, needs_verification=$10, tags=$11, updated_at=now()`,
-    [item.id, item.title, item.category, item.startDate, item.endDate, item.summary, item.sourceLabel, item.sourceUrl, item.verifiedAt, item.needsVerification, item.tags.join(",")],
-  );
+async function tryConfiguredJsonEndpoints({ campus, year, warnings }) {
+  const env = process.env.SMU_SCHEDULE_JSON_URLS || "";
+  const urls = env
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) =>
+      value
+        .replaceAll("{campus}", encodeURIComponent(campus))
+        .replaceAll("{year}", encodeURIComponent(year)),
+    );
+
+  for (const url of urls) {
+    try {
+      const json = JSON.parse(await fetchText(url));
+      const events = normalizeUnknownJsonSchedule(json, year);
+      if (events.length > 0) return events;
+      warnings.push(`JSON 엔드포인트 응답에 일정이 없습니다: ${url}`);
+    } catch (error) {
+      warnings.push(`JSON 엔드포인트 수집 실패: ${url} (${error.message})`);
+    }
+  }
+
+  return [];
 }
 
-async function upsertFaq(pool, faq) {
-  await pool.query(
-    `INSERT INTO faqs (id,question,answer,category,caution,tags)
-     VALUES ($1,$2,$3,$4,$5,$6)
-     ON CONFLICT (id) DO UPDATE SET question=$2, answer=$3, category=$4, caution=$5, tags=$6, updated_at=now()`,
-    [faq.id, faq.question, faq.answer, faq.category, faq.caution, faq.tags.join(",")],
-  );
+async function tryRenderedPageCollection({ url, year, warnings }) {
+  if (process.env.SMU_RENDER_JS !== "true") {
+    warnings.push("SMU_RENDER_JS=true가 아니어서 JS 렌더링 수집은 건너뜁니다.");
+    return [];
+  }
+
+  let chromium;
+  try {
+    ({ chromium } = require("playwright"));
+  } catch {
+    warnings.push("playwright 패키지가 없어 JS 렌더링 수집을 건너뜁니다.");
+    return [];
+  }
+
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(1000);
+    const renderedText = await page.locator("body").innerText();
+    return parseRenderedCalendarText(renderedText, year);
+  } catch (error) {
+    warnings.push(`JS 렌더링 수집 실패: ${error.message}`);
+    return [];
+  } finally {
+    if (browser) await browser.close();
+  }
 }
 
-function normalizeItem(body) {
-  if (!body.title || !body.category) throw Object.assign(new Error("title과 category는 필수입니다."), { statusCode: 400 });
-  return {
-    id: body.id || slug(`${body.category}-${body.title}-${body.startDate || "check"}`),
-    title: String(body.title),
-    category: String(body.category),
-    startDate: body.startDate || null,
-    endDate: body.endDate || body.startDate || null,
-    summary: String(body.summary || ""),
-    sourceLabel: String(body.sourceLabel || ""),
-    sourceUrl: String(body.sourceUrl || ""),
-    verifiedAt: body.verifiedAt || new Date().toISOString(),
-    needsVerification: Boolean(body.needsVerification),
-    tags: Array.isArray(body.tags) ? body.tags.map(String) : [],
-  };
+function parseSmuCalendarHtml(html, year) {
+  const tableEvents = parseTableRows(html, year);
+  const jsonEvents = parseEmbeddedScheduleJson(html, year);
+  const textEvents =
+    tableEvents.length === 0 && jsonEvents.length === 0 ? parseRenderedCalendarText(stripTags(html), year) : [];
+  const events = [...tableEvents, ...jsonEvents, ...textEvents];
+
+  return dedupeEvents(events);
 }
 
-function normalizeFaq(body) {
-  if (!body.question || !body.answer || !body.category) throw Object.assign(new Error("question, answer, category는 필수입니다."), { statusCode: 400 });
-  return {
-    id: body.id || slug(`${body.category}-${body.question}`),
-    question: String(body.question),
-    answer: String(body.answer),
-    category: String(body.category),
-    caution: String(body.caution || "세부사항은 공식 공지를 확인하세요."),
-    tags: Array.isArray(body.tags) ? body.tags.map(String) : [],
-  };
+function parseTableRows(html, year) {
+  const events = [];
+  const rowPattern = /<tr[^>]*>\s*<td[^>]*>([\d.\-~/월일\s]+)<\/td>\s*<td[^>]*>(.*?)<\/td>\s*<\/tr>/gis;
+  let match;
+
+  while ((match = rowPattern.exec(html))) {
+    const dateText = stripTags(match[1]).trim();
+    const title = stripTags(match[2]).trim();
+    const event = buildEventFromDateAndTitle({ dateText, title, year, note: "상명대 공식 HTML" });
+    if (event) events.push(event);
+  }
+
+  return events;
 }
 
-function mapItem(row) {
-  return { id: row.id, title: row.title, category: row.category, startDate: dateOnly(row.start_date), endDate: dateOnly(row.end_date), summary: row.summary, sourceLabel: row.source_label, sourceUrl: row.source_url, verifiedAt: row.verified_at, needsVerification: row.needs_verification, tags: split(row.tags) };
+function parseEmbeddedScheduleJson(html, year) {
+  const events = [];
+  const objectPattern = /\{[^{}]*(?:title|subject|content|text|schdulNm|scheduleNm)[^{}]*(?:start|date|ymd|bgnde|beginDt|schdulBgnde)[^{}]*\}/gis;
+  let match;
+
+  while ((match = objectPattern.exec(html))) {
+    const objectText = match[0]
+      .replace(/([{,]\s*)([a-zA-Z_][\w-]*)(\s*:)/g, '$1"$2"$3')
+      .replace(/'/g, '"');
+
+    try {
+      const item = JSON.parse(objectText);
+      const normalized = normalizeJsonScheduleItem(item, year);
+      if (normalized) events.push(normalized);
+    } catch {
+      // Ignore script fragments that look like objects but are not JSON.
+    }
+  }
+
+  return events;
 }
-function mapFaq(row) {
-  return { id: row.id, question: row.question, answer: row.answer, category: row.category, caution: row.caution, tags: split(row.tags) };
-}
-function readJson(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      try { resolve(body ? JSON.parse(body) : {}); } catch { reject(Object.assign(new Error("JSON 형식이 아닙니다."), { statusCode: 400 })); }
+
+function parseRenderedCalendarText(text, year) {
+  const events = [];
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (const line of lines) {
+    const event = buildEventFromDateAndTitle({
+      dateText: line,
+      title: line.replace(/^\d{1,2}[./월]\s*\d{1,2}[일.]?\s*[-~–]?\s*/, "").trim(),
+      year,
+      note: "상명대 공식 렌더링 텍스트",
     });
+    if (event) events.push(event);
+  }
+
+  return events;
+}
+
+function normalizeUnknownJsonSchedule(json, year) {
+  const list = Array.isArray(json)
+    ? json
+    : json.events || json.items || json.list || json.result || json.data || [];
+
+  if (!Array.isArray(list)) return [];
+  return dedupeEvents(list.map((item) => normalizeJsonScheduleItem(item, year)).filter(Boolean));
+}
+
+function normalizeJsonScheduleItem(item, year) {
+  const title =
+    item.title ||
+    item.subject ||
+    item.content ||
+    item.text ||
+    item.schdulNm ||
+    item.scheduleNm ||
+    item.name;
+  const start =
+    item.start ||
+    item.date ||
+    item.ymd ||
+    item.bgnde ||
+    item.beginDt ||
+    item.schdulBgnde ||
+    item.startDate;
+  const end = item.end || item.endDt || item.endde || item.schdulEndde || item.endDate || start;
+
+  if (!title || !start) return null;
+  const range = normalizeDateRange(String(start), String(end), year);
+  if (!range) return null;
+
+  return {
+    id: `smu-${range.date}-${slugify(title)}`,
+    title: stripTags(String(title)).trim(),
+    date: range.date,
+    endDate: range.endDate,
+    importance: inferImportance(String(title)),
+    note: "상명대 공식 JSON",
+  };
+}
+
+function buildEventFromDateAndTitle({ dateText, title, year, note }) {
+  if (!title || title.length < 2) return null;
+  const range = parseDateRange(dateText, year);
+  if (!range) return null;
+
+  return {
+    id: `smu-${range.date}-${slugify(title)}`,
+    title: stripTags(title).trim(),
+    date: range.date,
+    endDate: range.endDate,
+    importance: inferImportance(title),
+    note,
+  };
+}
+
+function fetchText(url) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith("https") ? https : http;
+    const request = client.get(
+      url,
+      {
+        headers: {
+          "User-Agent": "MoayoCampus/0.1 (+academic schedule cache)",
+          Accept: "text/html,application/json",
+        },
+      },
+      (response) => {
+        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          resolve(fetchText(new URL(response.headers.location, url).toString()));
+          response.resume();
+          return;
+        }
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          reject(new Error(`HTTP ${response.statusCode}`));
+          response.resume();
+          return;
+        }
+
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => {
+          body += chunk;
+        });
+        response.on("end", () => resolve(body));
+      },
+    );
+
+    request.setTimeout(10000, () => {
+      request.destroy(new Error("Request timeout"));
+    });
+    request.on("error", reject);
   });
 }
-function requireAdmin(req) {
-  if (ADMIN_KEY && req.headers["x-admin-key"] !== ADMIN_KEY) throw Object.assign(new Error("관리자 권한이 필요합니다."), { statusCode: 401 });
+
+function parseDateRange(value, year) {
+  const rangeMatch = value.match(
+    /(\d{1,2})\s*[./월-]\s*(\d{1,2})\s*일?\s*(?:[~\-–]\s*(\d{1,2})?\s*[./월-]?\s*(\d{1,2})\s*일?)?/,
+  );
+  if (!rangeMatch) return null;
+
+  const startMonth = rangeMatch[1].padStart(2, "0");
+  const startDay = rangeMatch[2].padStart(2, "0");
+  const endMonth = (rangeMatch[3] || rangeMatch[1]).padStart(2, "0");
+  const endDay = (rangeMatch[4] || rangeMatch[2]).padStart(2, "0");
+
+  return normalizeDateRange(`${year}-${startMonth}-${startDay}`, `${year}-${endMonth}-${endDay}`, year);
 }
-function serveStatic(urlPath, res) {
-  const filePath = urlPath === "/" ? path.join(ROOT, "index.html") : path.join(ROOT, decodeURIComponent(urlPath));
-  const normalized = path.normalize(filePath);
-  if (!normalized.startsWith(ROOT) || !fs.existsSync(normalized) || !fs.statSync(normalized).isFile()) return sendJson(res, { ok: false, error: "Not found" }, 404);
-  res.writeHead(200, { "Content-Type": mime(normalized) });
-  fs.createReadStream(normalized).pipe(res);
+
+function normalizeDateRange(start, end, year) {
+  const startDate = normalizeDate(start, year);
+  const endDate = normalizeDate(end, year);
+  if (!startDate || !endDate) return null;
+
+  return {
+    date: startDate,
+    endDate,
+  };
 }
-function sendJson(res, payload, status = 200) {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type,x-admin-key" });
+
+function normalizeDate(value, year) {
+  const clean = value.replace(/[^\d]/g, "");
+  if (clean.length === 8) return `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}`;
+  if (clean.length === 4) return `${year}-${clean.slice(0, 2)}-${clean.slice(2, 4)}`;
+  return null;
+}
+
+function stripTags(value) {
+  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+}
+
+function slugify(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48);
+}
+
+function inferImportance(title) {
+  const criticalWords = ["시험", "고사", "중간고사", "기말고사", "수강신청", "정정", "등록", "휴학", "복학", "납부"];
+  return criticalWords.some((word) => title.includes(word)) ? "critical" : "normal";
+}
+
+function dedupeEvents(events) {
+  const seen = new Set();
+  return events.filter((event) => {
+    const key = `${event.date}:${event.endDate}:${event.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function loadCacheFromDisk() {
+  try {
+    return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function saveCacheToDisk(cache) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+}
+
+function sendJson(res, payload, statusCode = 200) {
+  res.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  });
   res.end(JSON.stringify(payload, null, 2));
 }
-function mime(file) {
-  return { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".png": "image/png" }[path.extname(file)] || "application/octet-stream";
+
+function getFallbackEvents(year) {
+  return [
+    {
+      id: `smu-${year}-fall-registration`,
+      title: "2학기 수강신청/정정 준비",
+      date: `${year}-08-24`,
+      endDate: `${year}-08-28`,
+      importance: "critical",
+      note: "fallback",
+    },
+    {
+      id: `smu-${year}-fall-start`,
+      title: "2학기 개강",
+      date: `${year}-09-01`,
+      endDate: `${year}-09-01`,
+      importance: "normal",
+      note: "fallback",
+    },
+    {
+      id: `smu-${year}-midterm`,
+      title: "중간고사 예상 기간",
+      date: `${year}-10-19`,
+      endDate: `${year}-10-23`,
+      importance: "critical",
+      note: "fallback",
+    },
+  ];
 }
-function searchText(item) { return [item.title, item.summary, item.question, item.answer, item.category, item.tags?.join(" ")].filter(Boolean).join(" ").toLowerCase(); }
-function split(value) { return String(value || "").split(",").map((v) => v.trim()).filter(Boolean); }
-function dateOnly(value) { return value ? new Date(value).toISOString().slice(0, 10) : null; }
-function slug(value) { return String(value).toLowerCase().replace(/[^a-z0-9가-힣]+/g, "-").replace(/^-|-$/g, "").slice(0, 80); }
-function compareItems(a, b) { if (!a.startDate && !b.startDate) return a.title.localeCompare(b.title, "ko"); if (!a.startDate) return 1; if (!b.startDate) return -1; return a.startDate.localeCompare(b.startDate); }
 
-const seedItems = [
-  { id: "grade-confirm-2026-1", title: "2026-1학기 성적확정", category: "grade", startDate: "2026-07-10", endDate: "2026-07-10", summary: "1학기 성적이 확정되는 일정입니다. 스뮤니티 학점 계산은 확정 이후 참고하세요.", sourceLabel: "상명대 학사일정", sourceUrl: "", verifiedAt: "2026-07-05T00:00:00+09:00", needsVerification: false, tags: ["성적", "스뮤니티"] },
-  { id: "cart-2026-fall-1", title: "2026-2학기 장바구니 수강신청 1차", category: "course", startDate: "2026-07-16", endDate: "2026-07-17", summary: "2학기 수강신청 전 장바구니에 과목을 담아두는 1차 일정입니다.", sourceLabel: "상명대 학사일정", sourceUrl: "", verifiedAt: "2026-07-05T00:00:00+09:00", needsVerification: false, tags: ["장바구니", "수강신청"] },
-  { id: "course-2026-fall-1", title: "2026-2학기 재학생 1차 수강신청", category: "course", startDate: "2026-07-22", endDate: "2026-07-24", summary: "재학생 대상 2학기 1차 수강신청 기간입니다.", sourceLabel: "상명대 학사일정", sourceUrl: "", verifiedAt: "2026-07-05T00:00:00+09:00", needsVerification: false, tags: ["수강신청", "재학생"] },
-  { id: "cart-2026-fall-2", title: "2026-2학기 장바구니 수강신청 2차", category: "course", startDate: "2026-08-18", endDate: "2026-08-18", summary: "추가·변경을 준비하는 장바구니 수강신청 2차 일정입니다.", sourceLabel: "상명대 학사일정", sourceUrl: "", verifiedAt: "2026-07-05T00:00:00+09:00", needsVerification: false, tags: ["장바구니", "2차"] },
-  { id: "course-2026-fall-2", title: "2026-2학기 재학생 2차 수강신청", category: "course", startDate: "2026-08-20", endDate: "2026-08-20", summary: "남은 과목이나 변경 과목을 신청하는 재학생 2차 수강신청 일정입니다.", sourceLabel: "상명대 학사일정", sourceUrl: "", verifiedAt: "2026-07-05T00:00:00+09:00", needsVerification: false, tags: ["수강신청", "2차"] },
-  { id: "tuition-2026-fall", title: "2026-2학기 등록", category: "academic", startDate: "2026-08-24", endDate: "2026-08-26", summary: "2학기 등록금 납부 기간입니다.", sourceLabel: "상명대 학사일정", sourceUrl: "", verifiedAt: "2026-07-05T00:00:00+09:00", needsVerification: false, tags: ["등록", "등록금"] },
-  { id: "fall-start-2026", title: "2026-2학기 개강", category: "academic", startDate: "2026-09-01", endDate: "2026-09-01", summary: "2026학년도 제2학기 개강일입니다.", sourceLabel: "상명대 학사일정", sourceUrl: "", verifiedAt: "2026-07-05T00:00:00+09:00", needsVerification: false, tags: ["개강"] },
-  { id: "course-correction-2026-fall", title: "2026-2학기 수강신청 정정 및 취소", category: "course", startDate: "2026-09-01", endDate: "2026-09-07", summary: "개강 후 시간표를 최종 수정하는 기간입니다.", sourceLabel: "상명대 학사일정", sourceUrl: "", verifiedAt: "2026-07-05T00:00:00+09:00", needsVerification: false, tags: ["정정", "취소"] },
-  { id: "huss-fall-check", title: "HUSS 2학기 신청 일정", category: "huss", startDate: null, endDate: null, summary: "HUSS 신청은 별도 공지로 확인해야 합니다. 신청 기간, 대상, 인정 방식 확인이 필요합니다.", sourceLabel: "공식 공지 확인 필요", sourceUrl: "", verifiedAt: null, needsVerification: true, tags: ["HUSS", "허스", "융합"] },
-  { id: "kmooc-fall-check", title: "K-MOOC 2학기 신청/수강 일정", category: "kmooc", startDate: null, endDate: null, summary: "K-MOOC는 강좌별 신청 기간과 학점 인정 조건이 다를 수 있습니다.", sourceLabel: "공식 공지 확인 필요", sourceUrl: "", verifiedAt: null, needsVerification: true, tags: ["K-MOOC", "케이묵"] },
-  { id: "biohealth-fall-check", title: "바이오헬스 혁신융합대학 신청 일정", category: "biohealth", startDate: null, endDate: null, summary: "바이오헬스 관련 신청, 수강, 행사 일정은 사업단 공지 기준으로 확인해야 합니다.", sourceLabel: "공식 공지 확인 필요", sourceUrl: "", verifiedAt: null, needsVerification: true, tags: ["바이오헬스", "CO-WEEK"] },
-];
+function parseEverytimeImportedText(text, year) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const event = buildEventFromDateAndTitle({
+        dateText: line,
+        title: line.replace(/^\d{1,2}[./월]\s*\d{1,2}[일.]?\s*[-~–]?\s*/, "").trim(),
+        year,
+        note: "사용자 제공 에브리타임 데이터",
+      });
+      return event;
+    })
+    .filter(Boolean);
+}
 
-const seedFaqs = [
-  { id: "faq-cart", question: "장바구니 수강신청 1차랑 2차 차이가 뭐야?", answer: "둘 다 실제 수강신청 전에 과목을 담아두는 준비 일정입니다. 1차 이후 변경이나 추가 확인이 필요하면 2차 일정도 확인해야 합니다.", category: "course", caution: "장바구니와 실제 수강신청 완료는 다릅니다.", tags: ["장바구니"] },
-  { id: "faq-grade", question: "성적확정되면 스뮤니티에 바로 반영돼?", answer: "성적확정 이후 스뮤니티 계산을 참고하는 편이 안전합니다. 반영 시점은 서비스 상태에 따라 차이가 있을 수 있습니다.", category: "grade", caution: "최종 성적은 학교 시스템 기준으로 확인하세요.", tags: ["성적", "스뮤니티"] },
-  { id: "faq-huss", question: "HUSS는 수강신청이랑 별도로 신청해야 해?", answer: "HUSS는 일반 수강신청과 별도 신청 절차가 있을 수 있습니다. 프로그램 공지에서 신청 기간, 대상, 인정 방식을 확인해야 합니다.", category: "huss", caution: "현재 등록된 HUSS 일정은 확인 필요 상태입니다.", tags: ["HUSS", "허스"] },
-  { id: "faq-kmooc", question: "K-MOOC 들으면 학점 인정돼?", answer: "강좌와 학기별 공지에 따라 학점 인정 여부가 달라질 수 있습니다. 신청 전 학점 인정 조건과 이수 기준을 확인해야 합니다.", category: "kmooc", caution: "자동 인정 여부는 공식 공지 기준으로 확인하세요.", tags: ["K-MOOC", "케이묵"] },
-  { id: "faq-biohealth", question: "바이오헬스는 누가 신청할 수 있어?", answer: "바이오헬스 혁신융합대학 관련 프로그램은 대상 학과, 학년, 캠퍼스 조건이 있을 수 있습니다. 사업단 공지를 기준으로 확인해야 합니다.", category: "biohealth", caution: "신청 대상과 인정 조건을 공식 공지에서 확인하세요.", tags: ["바이오헬스"] },
-];
-
-module.exports = { server, listItems, listFaqs, answerQuestion };
+module.exports = {
+  getAcademicSchedules,
+  parseSmuCalendarHtml,
+  parseEverytimeImportedText,
+  normalizeUnknownJsonSchedule,
+};

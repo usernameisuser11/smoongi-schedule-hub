@@ -1,3 +1,17 @@
+const smoongiAssets = {
+  academic: "./assets/smoongi/spring_deer.png",
+  apply: "./assets/smoongi/sky_jump.png",
+  extracurricular: "./assets/smoongi/autumn_reading.png",
+  notice: "./assets/smoongi/night_bench.png",
+  portal: "./assets/smoongi/painting.png",
+  life: "./assets/smoongi/snow_mountain.png",
+  deadline: "./assets/smoongi/fireworks.png",
+  target: "./assets/smoongi/grass_pair.png",
+  source: "./assets/smoongi/blue_frame.png",
+};
+
+const fallbackImage = smoongiAssets.academic;
+
 const officialLinks = [
   {
     title: "상명대 홈페이지",
@@ -6,56 +20,30 @@ const officialLinks = [
     tag: "공식",
   },
   {
-    title: "상명대 학사일정",
-    description: "개강, 종강, 시험, 등록 등 학사 캘린더",
-    url: "https://www.smu.ac.kr/ko/life/academicCalendar.do",
-    tag: "학사",
-  },
-  {
-    title: "수강신청 시스템",
-    description: "수강신청 및 정정 기간에 확인",
-    url: "https://sugang.smu.ac.kr/",
-    tag: "신청",
-  },
-  {
-    title: "상명대 통합공지",
-    description: "장학, 학사, 비교과, 사업단 공지 확인",
+    title: "통합공지",
+    description: "학사, 장학, 사업단 공지를 한 번에 확인",
     url: "https://www.smu.ac.kr/lounge/notice/notice.do",
     tag: "공지",
   },
   {
-    title: "상명 Q&A FAQ",
-    description: "자주 묻는 학사/학교생활 질문 확인",
-    url: "https://www.smu.ac.kr/lounge/qna/faq.do",
-    tag: "FAQ",
+    title: "샘물포털",
+    description: "성적, 학적, 등록 확인",
+    url: "https://portal.smu.ac.kr/",
+    tag: "포털",
   },
   {
-    title: "바이오헬스 사업단",
-    description: "바이오헬스 혁신융합대학 공지와 비교과",
-    url: "https://www.smu.ac.kr/biohealth/index.do",
-    tag: "바이오헬스",
+    title: "학술정보관",
+    description: "도서관, 열람실, 학술자료",
+    url: "https://lib.smu.ac.kr/",
+    tag: "생활",
   },
   {
-    title: "HUSS 확인",
-    description: "HUSS 관련 공지는 통합공지에서 HUSS로 검색",
-    url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=HUSS",
-    tag: "HUSS",
+    title: "학생생활관",
+    description: "생활관 공지, 입사, 외박/연장",
+    url: "https://dormitory.smu.ac.kr/dormi/index.do",
+    tag: "생활",
   },
 ];
-
-const smoongiAssets = {
-  academic: "./assets/smoongi/spring_deer.png",
-  apply: "./assets/smoongi/sky_jump.png",
-  faq: "./assets/smoongi/free_major_youtube.png",
-  extracurricular: "./assets/smoongi/autumn_reading.png",
-  notice: "./assets/smoongi/night_bench.png",
-  deadline: "./assets/smoongi/fireworks.png",
-  target: "./assets/smoongi/grass_pair.png",
-  source: "./assets/smoongi/painting.png",
-  winter: "./assets/smoongi/winter_tree.png",
-  snow: "./assets/smoongi/snow_mountain.png",
-  christmas: "./assets/smoongi/christmas.png",
-};
 
 const categories = [
   {
@@ -63,45 +51,72 @@ const categories = [
     title: "학사",
     image: smoongiAssets.academic,
     description: "개강, 종강, 시험기간, 등록 같은 학교 공통 일정",
-    items: ["학사일정 캘린더", "시험기간", "등록/휴학/복학", "계절학기"],
-    linkTitle: "학사일정 바로가기",
-    linkUrl: "https://www.smu.ac.kr/ko/life/academicCalendar.do",
+    items: [
+      { title: "학사일정", url: "https://www.smu.ac.kr/ko/life/academicCalendar.do" },
+      { title: "상명 Q&A", url: "https://www.smu.ac.kr/lounge/qna/faq.do" },
+      { title: "행정서식", url: "https://www.smu.ac.kr/ko/life/forms.do" },
+      { title: "통합공지", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
+    ],
   },
   {
     id: "apply",
     title: "신청",
     image: smoongiAssets.apply,
-    description: "수강신청, 비교과 신청, 사업단 프로그램 신청 확인",
-    items: ["수강신청", "정정 기간", "HUSS 신청", "바이오헬스 프로그램"],
-    linkTitle: "수강신청 바로가기",
-    linkUrl: "https://sugang.smu.ac.kr/",
-  },
-  {
-    id: "faq",
-    title: "FAQ",
-    image: smoongiAssets.faq,
-    description: "자주 묻는 질문과 학교생활 도움말",
-    items: ["학사 FAQ", "신청 방법", "이수 기준", "문의처"],
-    linkTitle: "상명 FAQ 바로가기",
-    linkUrl: "https://www.smu.ac.kr/lounge/qna/faq.do",
+    description: "수강신청, HUSS, 바이오헬스, K-MOOC 신청 확인",
+    items: [
+      { title: "수강신청", url: "https://sugang.smu.ac.kr/" },
+      { title: "HUSS 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=HUSS" },
+      { title: "바이오헬스", url: "https://www.smu.ac.kr/biohealth/index.do" },
+      { title: "K-MOOC 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=K-MOOC" },
+    ],
   },
   {
     id: "extracurricular",
     title: "비교과",
     image: smoongiAssets.extracurricular,
-    description: "비교과 프로그램, 마일리지, 사업단 활동",
-    items: ["비교과 프로그램", "마일리지", "바이오헬스 비교과", "HUSS 프로그램"],
-    linkTitle: "바이오헬스 비교과 보기",
-    linkUrl: "https://www.smu.ac.kr/biohealth/index.do",
+    description: "비교과, 마일리지, 진로·취업 프로그램",
+    items: [
+      { title: "비교과 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=%EB%B9%84%EA%B5%90%EA%B3%BC" },
+      { title: "마일리지 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=%EB%A7%88%EC%9D%BC%EB%A6%AC%EC%A7%80" },
+      { title: "피어오름", url: "https://peerorum.smu.ac.kr/" },
+      { title: "SMe 포트폴리오", url: "https://smcareer.smu.ac.kr/" },
+    ],
   },
   {
     id: "notice",
     title: "공지",
     image: smoongiAssets.notice,
-    description: "상명대 통합공지와 사업단별 공지 확인",
-    items: ["통합공지", "학사공지", "장학공지", "사업단 공지"],
-    linkTitle: "통합공지 바로가기",
-    linkUrl: "https://www.smu.ac.kr/lounge/notice/notice.do",
+    description: "통합공지, 학사, 장학, 행사 공지 확인",
+    items: [
+      { title: "통합공지", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
+      { title: "장학 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=%EC%9E%A5%ED%95%99" },
+      { title: "학사 공지 검색", url: "https://www.smu.ac.kr/lounge/notice/notice.do?mode=list&srSearchKey=article_title&srSearchVal=%ED%95%99%EC%82%AC" },
+      { title: "상명행사", url: "https://www.smu.ac.kr/lounge/event/event.do" },
+    ],
+  },
+  {
+    id: "portal",
+    title: "포털",
+    image: smoongiAssets.portal,
+    description: "샘물, e-Campus, 성적, 강의 관련 이동",
+    items: [
+      { title: "샘물포털", url: "https://portal.smu.ac.kr/" },
+      { title: "e-Campus", url: "https://ecampus.smu.ac.kr/" },
+      { title: "수강신청", url: "https://sugang.smu.ac.kr/" },
+      { title: "상명대 홈페이지", url: "https://www.smu.ac.kr/ko/index.do" },
+    ],
+  },
+  {
+    id: "life",
+    title: "생활",
+    image: smoongiAssets.life,
+    description: "도서관, 생활관, 식당, 버스처럼 자주 쓰는 생활 링크",
+    items: [
+      { title: "학술정보관", url: "https://lib.smu.ac.kr/" },
+      { title: "학생생활관", url: "https://dormitory.smu.ac.kr/dormi/index.do" },
+      { title: "식당메뉴 검색", url: "https://www.smu.ac.kr/search/front/Search.jsp?qt=%EC%8B%9D%EB%8B%B9%EB%A9%94%EB%89%B4" },
+      { title: "버스안내 검색", url: "https://www.smu.ac.kr/search/front/Search.jsp?qt=%EB%B2%84%EC%8A%A4%EC%95%88%EB%82%B4" },
+    ],
   },
 ];
 
@@ -111,14 +126,22 @@ const checkCards = [
     title: "마감부터 보기",
     image: smoongiAssets.deadline,
     description: "D-Day와 날짜를 먼저 확인해서 놓치기 쉬운 신청을 위로 올려요.",
-    answer: "마감이 가까운 일정부터 보는 화면으로 이동했어요. 신청 공지는 마감 시간과 제출 방식까지 같이 확인하는 게 좋아요.",
+    answer: "마감이 가까운 일정은 신청 페이지와 통합공지에서 마감 시간까지 같이 확인하는 게 좋아요.",
+    links: [
+      { title: "통합공지", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
+      { title: "수강신청", url: "https://sugang.smu.ac.kr/" },
+    ],
   },
   {
     id: "target",
     title: "대상 확인",
     image: smoongiAssets.target,
-    description: "나한테 해당되는 일정인지 학년, 캠퍼스, 전공, 참여 조건을 확인해요.",
+    description: "학년, 캠퍼스, 전공, 참여 조건을 먼저 확인해요.",
     answer: "대상 확인에서는 학년, 캠퍼스, 전공 제한, 중복 참여 가능 여부를 먼저 봐야 해요.",
+    links: [
+      { title: "상명 Q&A", url: "https://www.smu.ac.kr/lounge/qna/faq.do" },
+      { title: "통합공지", url: "https://www.smu.ac.kr/lounge/notice/notice.do" },
+    ],
   },
   {
     id: "source",
@@ -126,6 +149,7 @@ const checkCards = [
     image: smoongiAssets.source,
     description: "세부 시간은 공식 공지 기준으로 한 번 더 확인해요.",
     answer: "출처 확인은 공식 링크 모음으로 연결했어요. 일정 요약이 맞더라도 최종 신청 전에는 공식 공지를 확인해줘.",
+    links: officialLinks,
   },
 ];
 
@@ -146,7 +170,7 @@ function renderCategories() {
       (category) => `
         <button class="category-card" type="button" data-category-id="${category.id}">
           <span class="smoongi-icon" aria-hidden="true">
-            <img src="${category.image}" alt="" />
+            ${imageTag(category.image, "")}
           </span>
           <strong>${category.title}</strong>
           <small>${category.description}</small>
@@ -158,6 +182,7 @@ function renderCategories() {
   categoryGrid.querySelectorAll(".category-card").forEach((button) => {
     button.addEventListener("click", () => selectCategory(button.dataset.categoryId));
   });
+  wireImageFallbacks(categoryGrid);
 }
 
 function renderLinks() {
@@ -180,7 +205,7 @@ function renderCheckCards() {
       (card) => `
         <button class="check-card" type="button" data-check-id="${card.id}">
           <span class="smoongi-icon wide" aria-hidden="true">
-            <img src="${card.image}" alt="" />
+            ${imageTag(card.image, "")}
           </span>
           <div>
             <strong>${card.title}</strong>
@@ -194,6 +219,7 @@ function renderCheckCards() {
   checkGrid.querySelectorAll(".check-card").forEach((button) => {
     button.addEventListener("click", () => selectCheck(button.dataset.checkId));
   });
+  wireImageFallbacks(checkGrid);
 }
 
 function selectCategory(id) {
@@ -201,10 +227,10 @@ function selectCategory(id) {
   detailTitle.textContent = category.title;
   detailDescription.textContent = category.description;
   detailItems.innerHTML = `
-    <img class="detail-image" src="${category.image}" alt="${category.title} 수뭉이 이미지" />
-    ${category.items.map((item) => `<div class="event-card"><span>${item}</span></div>`).join("")}
-    <a class="detail-link" href="${category.linkUrl}" target="_blank" rel="noopener noreferrer">${category.linkTitle}</a>
+    ${imageTag(category.image, `${category.title} 수뭉이 이미지`, "detail-image")}
+    ${category.items.map(renderDetailItem).join("")}
   `;
+  wireImageFallbacks(detailItems);
   document.querySelectorAll(".category-card").forEach((button) => {
     button.classList.toggle("active", button.dataset.categoryId === id);
   });
@@ -213,7 +239,7 @@ function selectCategory(id) {
 
 function selectCheck(id) {
   const card = checkCards.find((item) => item.id === id) || checkCards[0];
-  setAnswer(card.title, card.answer);
+  setAnswer(card.title, card.answer, card.links || []);
   if (id === "source") {
     document.querySelector("#official-links").scrollIntoView({ behavior: "smooth", block: "start" });
   } else {
@@ -230,22 +256,72 @@ function setAnswer(title, message, links = []) {
   `;
 }
 
+function renderDetailItem(item) {
+  return `
+    <a class="event-card clickable-event" href="${item.url}" target="_blank" rel="noopener noreferrer">
+      <span>${item.title}</span>
+    </a>
+  `;
+}
+
+function imageTag(src, alt, className = "") {
+  return `<img ${className ? `class="${className}"` : ""} src="${src}" alt="${alt}" data-fallback-src="${fallbackImage}" />`;
+}
+
+function wireImageFallbacks(root = document) {
+  root.querySelectorAll("img[data-fallback-src]").forEach((img) => {
+    img.addEventListener(
+      "error",
+      () => {
+        const fallbackUrl = img.dataset.fallbackSrc;
+        if (!fallbackUrl || img.src.includes(fallbackUrl.replace("./", ""))) return;
+        img.src = fallbackUrl;
+      },
+      { once: true },
+    );
+  });
+}
+
 function getAiResponse(question) {
   const text = question.replaceAll(" ", "").toLowerCase();
 
   if (text.includes("huss") || text.includes("허스")) {
     return {
       title: "HUSS 관련 안내",
-      message: "HUSS 신청 일정은 통합공지에서 HUSS 키워드로 확인하는 방식이 가장 안전해요. 신청 대상, 마감 시간, 제출 링크는 공지마다 달라질 수 있어요.",
-      links: officialLinks.filter((link) => link.tag === "HUSS" || link.tag === "공지"),
+      message: "HUSS 신청 일정은 통합공지에서 HUSS 키워드로 확인하는 방식이 가장 안전해요.",
+      links: categories.find((category) => category.id === "apply").items.filter((link) => link.title.includes("HUSS")),
     };
   }
 
   if (text.includes("바이오") || text.includes("bio")) {
     return {
       title: "바이오헬스 관련 안내",
-      message: "바이오헬스 혁신융합대학 프로그램은 사업단 홈페이지의 공지사항과 비교과 프로그램을 같이 확인하면 좋아요.",
-      links: officialLinks.filter((link) => link.tag === "바이오헬스" || link.tag === "공지"),
+      message: "바이오헬스 혁신융합대학 프로그램은 사업단 홈페이지와 통합공지를 같이 확인하면 좋아요.",
+      links: categories.find((category) => category.id === "apply").items.filter((link) => link.title.includes("바이오헬스")),
+    };
+  }
+
+  if (text.includes("생활관") || text.includes("기숙사") || text.includes("외박")) {
+    return {
+      title: "학생생활관 안내",
+      message: "생활관 공지, 입사/퇴사, 외박/연장 신청은 학생생활관 페이지에서 확인하면 돼요.",
+      links: categories.find((category) => category.id === "life").items.filter((link) => link.title.includes("생활관")),
+    };
+  }
+
+  if (text.includes("도서관") || text.includes("학술정보관") || text.includes("열람실")) {
+    return {
+      title: "학술정보관 안내",
+      message: "도서 검색, 열람실, 학술자료는 학술정보관 페이지에서 확인하면 돼요.",
+      links: categories.find((category) => category.id === "life").items.filter((link) => link.title.includes("학술정보관")),
+    };
+  }
+
+  if (text.includes("샘물") || text.includes("포털") || text.includes("성적")) {
+    return {
+      title: "포털 안내",
+      message: "성적, 학적, 등록 관련 확인은 샘물포털에서 진행하는 경우가 많아요.",
+      links: categories.find((category) => category.id === "portal").items.filter((link) => link.title.includes("샘물")),
     };
   }
 
@@ -253,7 +329,7 @@ function getAiResponse(question) {
     return {
       title: "신청 일정 확인",
       message: "수강신청이나 정정은 날짜뿐 아니라 시작 시간, 대상 학년, 캠퍼스 기준을 같이 확인해야 해요.",
-      links: officialLinks.filter((link) => link.tag === "신청" || link.tag === "학사"),
+      links: categories.find((category) => category.id === "apply").items.slice(0, 2),
     };
   }
 
@@ -261,14 +337,14 @@ function getAiResponse(question) {
     return {
       title: "학사일정 확인",
       message: "개강, 종강, 시험기간 같은 학교 공통 일정은 상명대 학사일정 페이지를 기준으로 확인하면 돼요.",
-      links: officialLinks.filter((link) => link.tag === "학사"),
+      links: categories.find((category) => category.id === "academic").items.slice(0, 2),
     };
   }
 
   return {
     title: "수뭉이 답변",
     message: "질문 내용과 가까운 공식 링크를 먼저 보여줄게요. 정확한 대상과 마감 시간은 공식 공지에서 한 번 더 확인해줘.",
-    links: officialLinks.slice(0, 4),
+    links: officialLinks.slice(0, 3),
   };
 }
 
@@ -276,7 +352,7 @@ aiForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const question = aiInput.value.trim();
   if (!question) {
-    setAnswer("질문을 입력해줘", "예: HUSS 신청일 알려줘, 바이오헬스 공지 어디서 봐? 처럼 물어보면 돼요.");
+    setAnswer("질문을 입력해줘", "예: HUSS 신청일 알려줘, 학생생활관 외박 신청 어디야? 처럼 물어보면 돼요.");
     aiInput.focus();
     return;
   }
@@ -291,4 +367,5 @@ aiForm.addEventListener("submit", (event) => {
 renderCategories();
 renderLinks();
 renderCheckCards();
+wireImageFallbacks();
 selectCategory("academic");

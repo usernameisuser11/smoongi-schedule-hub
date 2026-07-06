@@ -1,91 +1,65 @@
-# 수뭉이 일정함
+# Moayo Campus Prototype
 
-상명대학교 학생들이 놓치기 쉬운 학사일정, HUSS, K-MOOC, 바이오헬스, 비교과 신청 일정과 FAQ를 한 곳에 모아 보여주는 웹서비스입니다.
+상명대학교 대학생의 학과, 동아리, 팀플, 학생회 일정을 조율하는 데 특화한 정적 프로토타입입니다.
 
-기존 프리에 일정 조율 앱 코드를 갈아엎고, Render 배포와 Neon DB 인프라를 재사용하는 방향으로 바꿨습니다.
+## 방향
+
+Moayo Campus는 개인 일정 관리 앱이 아니라 그룹 일정 조율 앱입니다. 학사일정과 학과/동아리 일정을 기본 레이어로 표시하고, 참여자는 본인이 안 되는 시간만 입력합니다.
 
 ## 핵심 기능
 
-- 일정 모아보기
-- D-Day 표시
-- 카테고리 필터
-- FAQ 검색
-- Gemini API 기반 자유 질문 답변
-- 실제 수뭉이 이미지를 활용한 귀여운 UI
-- 출처, 마지막 확인일, 확인 필요 여부 표시
-- Neon DB 자동 테이블 생성 및 시드 데이터 삽입
+- 상명대 학과/동아리/팀플 일정 조율 방 설정
+- 상명대 학사일정 자동 수집 API 연동
+- 학과/동아리/학생회 고정 일정 등록
+- 참여자별 불가능 시간 입력
+- 학사일정, 그룹 고정 일정, 참여자 불가능 시간을 피한 추천 시간 계산
+- 가장 좋은 확정안을 `.ics` 캘린더 파일로 내보내기
 
-## 실행
+## 학사일정 자동 수집
 
-```bash
-npm install
-npm start
-```
+프론트는 `/api/academic-schedules?campus=seoul&year=2026`을 먼저 호출합니다. API 호출에 실패하면 샘플 데이터로 fallback합니다.
 
-로컬 주소:
-
-```text
-http://localhost:4174
-```
-
-## Render 배포
-
-Build Command:
+백엔드는 `server/academic-schedule-service.js`에 있습니다.
 
 ```bash
-npm install
+node server/academic-schedule-service.js
 ```
 
-Start Command:
+기본 전략은 아래 순서입니다.
 
-```bash
-npm start
-```
+1. 상명대 공식 학사일정 페이지 자동 수집
+2. 서버 렌더링 HTML, 임베디드 JSON, 렌더링 텍스트 순서로 파싱
+3. 필요하면 `SMU_RENDER_JS=true`로 Playwright 기반 JS 렌더링 수집 사용
+4. 수집 결과를 파일 캐시와 메모리 캐시에 저장
+5. 프론트는 우리 API만 호출
+6. 공식 페이지 구조가 바뀌거나 수집 실패 시 마지막 캐시 또는 fallback 데이터 사용
 
-## 기존 프리에 Neon DB 재사용
-
-기존 프리에에서 쓰던 Neon DB를 그대로 가져오면 됩니다.
-
-Render 환경변수 `DATABASE_URL`에 기존 Neon connection string을 넣으면 서버가 시작될 때 새 서비스용 테이블만 추가로 생성합니다. 기존 프리에 테이블은 삭제하거나 수정하지 않습니다.
-
-자동 생성되는 새 테이블:
-
-- `info_items`
-- `faqs`
-- `question_logs`
-
-## 환경변수
+환경변수:
 
 ```bash
 PORT=4174
-DATABASE_URL=postgresql://...
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-1.5-flash
-ADMIN_KEY=원하는_관리자키
+CACHE_TTL_MS=43200000
+SMU_SEOUL_CALENDAR_URL=https://www.smu.ac.kr/cs/admission/calendar.do
+SMU_RENDER_JS=false
+SMU_SCHEDULE_JSON_URLS=
 ```
 
-`DATABASE_URL`이 없으면 메모리 시드 데이터로 실행됩니다.
+상명대 내부에서 공개 JSON 엔드포인트를 확인하면 `SMU_SCHEDULE_JSON_URLS`에 URL 템플릿을 넣으면 됩니다. `{year}`, `{campus}` 치환을 지원합니다.
 
-## API
+에브리타임 데이터는 로그인 세션이나 앱 내부 API를 무단으로 긁는 방식 대신, 사용자가 직접 공유/복사/내보내기 가능한 텍스트나 CSV를 가져오는 보조 입력으로만 다루는 편이 안전합니다.
 
-```http
-GET /api/items
-GET /api/faqs
-POST /api/ask
-POST /api/admin/items
-POST /api/admin/faqs
+## 실행
+
+브라우저에서 `index.html`을 바로 열거나 아래처럼 정적 서버로 실행합니다.
+
+```bash
+python3 -m http.server 4173
 ```
 
-관리자 API는 `ADMIN_KEY`가 설정되어 있으면 요청 헤더에 아래 값을 넣어야 합니다.
+## 기존 Moayo에 붙일 때
 
-```http
-x-admin-key: 설정한_ADMIN_KEY
-```
-
-## 운영 원칙
-
-- 학생은 무료로 사용
-- 공식 공지 기반으로 일정 등록
-- AI 답변은 등록된 자료를 바탕으로만 안내
-- 세부 시간, 대상, 변경사항은 공식 공지 확인 문구를 항상 표시
-- 수익화는 홍보 배너, 상단 노출, 카드뉴스 제작 대행 중심으로 시작
+- `room`: 기존 방 생성 데이터와 연결
+- `academicEvents`: `/api/academic-schedules` 응답으로 대체
+- `groupLayerEvents`: 학과/동아리 운영진이 등록한 고정 일정 테이블로 대체
+- `blockedEvents`: 참여자가 입력한 불가능 시간 테이블로 대체
+- `candidateWindows`: 기존 Moayo 날짜/시간 후보 범위로 대체
