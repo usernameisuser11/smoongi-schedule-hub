@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>수뭉이 일정함</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero" id="top">
+        <div class="hero-copy">
+          <p class="eyebrow">SMU Schedule Hub</p>
+          <h1>수뭉이 일정함</h1>
+          <p class="lead">상명대 학사, 신청, 비교과, 공지 링크를 한 화면에서 보고 궁금한 일정은 바로 물어보세요.</p>
+          <div class="hero-actions">
+            <a class="primary-button" href="#ai-question">AI에게 일정 물어보기</a>
+            <a class="ghost-button" href="#official-links">공식 링크 확인</a>
+          </div>
+        </div>
+        <div class="hero-visual" aria-label="수뭉이 이미지 모음">
+          <img class="hero-main-image" src="./assets/smoongi/spring_deer.png" alt="봄 배경의 수뭉이" />
+          <div class="hero-mini-grid" aria-hidden="true">
+            <img src="./assets/smoongi/sky_jump.png" alt="" />
+            <img src="./assets/smoongi/night_bench.png" alt="" />
+            <img src="./assets/smoongi/autumn_reading.png" alt="" />
+            <img src="./assets/smoongi/snow_mountain.png" alt="" />
+          </div>
+          <div class="hero-card">
+            <strong>현재 프로토타입</strong>
+            <span>무료 서버라 10분 이상 사용이 없으면 첫 접속 때 약 30초 정도 걸릴 수 있어요.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="ai-panel" id="ai-question" aria-labelledby="aiTitle">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">AI Answer</p>
+            <h2 id="aiTitle">수뭉이에게 바로 질문하기</h2>
+            <p>답변은 입력창 바로 아래에 표시돼서, 질문 후 결과가 나왔는지 바로 확인할 수 있어요.</p>
+          </div>
+        </div>
+        <form id="aiForm" class="ai-form">
+          <input id="aiInput" type="text" placeholder="예: HUSS 신청일 알려줘 / 바이오헬스 공지 어디서 봐?" autocomplete="off" />
+          <button class="primary-button" type="submit">질문하기</button>
+        </form>
+        <div id="aiAnswer" class="answer-box" aria-live="polite">
+          <strong>질문을 입력하면 이곳에 바로 답변이 표시돼요.</strong>
+          <span>정확한 신청 대상과 세부 시간은 항상 공식 공지 링크에서 한 번 더 확인하게 안내할게요.</span>
+        </div>
+      </section>
+
+      <section class="section-block" aria-labelledby="quickMenuTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Quick Menu</p>
+            <h2 id="quickMenuTitle">자주 보는 항목</h2>
+          </div>
+        </div>
+        <div id="categoryGrid" class="category-grid"></div>
+      </section>
+
+      <section class="content-layout">
+        <article class="section-block detail-panel" id="detailPanel" aria-live="polite">
+          <p class="eyebrow">Selected</p>
+          <h2 id="detailTitle">학사</h2>
+          <p id="detailDescription">개강, 종강, 시험기간 같은 학교 공통 일정을 확인해요.</p>
+          <div id="detailItems" class="event-list"></div>
+        </article>
+
+        <article class="section-block" id="official-links">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Official Links</p>
+              <h2>공식 링크 모음</h2>
+              <p>일정은 수뭉이가 보기 쉽게 정리하고, 최종 확인은 공식 페이지로 연결해요.</p>
+            </div>
+          </div>
+          <div id="officialLinkList" class="link-list"></div>
+        </article>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Check Cards</p>
+            <h2>신청 전 확인</h2>
+          </div>
+        </div>
+        <div id="checkGrid" class="check-grid"></div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
