@@ -553,7 +553,7 @@ function normalizeScheduleEvents(events, year) {
         const date = normalizeScheduleDate(event.date || event.start || event.startDate, year);
         const endDate = normalizeScheduleDate(event.endDate || event.end || event.date || event.start || event.startDate, year) || date;
         const title = String(event.title || event.subject || event.content || "").replace(/\s+/g, " ").trim();
-        if (!date || !title) return null;
+        if (!date || !isValidScheduleIsoDate(date) || !isValidScheduleIsoDate(endDate) || !isLikelyScheduleTitle(title)) return null;
         return {
           id: event.id || `schedule-${date}-${index}`,
           title,
@@ -582,10 +582,26 @@ function normalizeScheduleDate(value, year) {
   if (!value) return "";
   const text = String(value).trim();
   const iso = text.match(/(20\d{2})[-./년\s]*(\d{1,2})[-./월\s]*(\d{1,2})/);
-  if (iso) return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
+  const normalizedIso = iso ? `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}` : "";
+  if (isValidScheduleIsoDate(normalizedIso)) return normalizedIso;
+
   const short = text.match(/(\d{1,2})[-./월\s]*(\d{1,2})/);
-  if (short) return `${year}-${short[1].padStart(2, "0")}-${short[2].padStart(2, "0")}`;
-  return "";
+  const normalizedShort = short ? `${year}-${short[1].padStart(2, "0")}-${short[2].padStart(2, "0")}` : "";
+  return isValidScheduleIsoDate(normalizedShort) ? normalizedShort : "";
+}
+
+function isValidScheduleIsoDate(value) {
+  if (!/^20\d{2}-\d{2}-\d{2}$/.test(String(value || ""))) return false;
+  const [y, m, d] = value.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
+function isLikelyScheduleTitle(title) {
+  if (!title || title.length < 2 || title.length > 80) return false;
+  if (/window\.|dataLayer|gtag|function\s*\(|상명소개|열린 총장실|개인정보처리방침|COPYRIGHT|본문 바로가기|모바일 메뉴|서브메뉴|사이트맵|입학안내|대학현황|캠퍼스 안내|정보공개|검색어 입력|담당부서|대표번호|SMPOPUP|Login|닫기/.test(title)) return false;
+  if (/^[{}[\];:=,.\s0-9A-Za-z_-]+$/.test(title)) return false;
+  return true;
 }
 
 function inferScheduleImportance(title) {
@@ -713,10 +729,9 @@ function getScheduleMeta(event) {
 }
 
 function parseLocalDate(value) {
-  if (!value) return null;
-  const [year, month, day] = String(value).split("-").map(Number);
-  if (!year || !month || !day) return null;
-  return startOfDay(new Date(year, month - 1, day));
+  if (!isValidScheduleIsoDate(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
 function getKoreanToday() {

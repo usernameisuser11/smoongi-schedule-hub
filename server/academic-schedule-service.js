@@ -180,10 +180,11 @@ async function collectOfficialAcademicSchedules({ campus, year }) {
   const warnings = [];
 
   const endpointEvents = await tryConfiguredJsonEndpoints({ campus, year, warnings });
-  if (endpointEvents.length > 0) {
+  const cleanEndpointEvents = dedupeEvents(endpointEvents.filter(isValidScheduleEvent));
+  if (cleanEndpointEvents.length > 0) {
     return {
       source: "상명대 공식 학사일정 JSON 엔드포인트",
-      events: endpointEvents,
+      events: cleanEndpointEvents,
       warnings,
     };
   }
@@ -204,7 +205,7 @@ async function collectOfficialAcademicSchedules({ campus, year }) {
     }
   }
 
-  const dedupedHtmlEvents = dedupeEvents(htmlEvents);
+  const dedupedHtmlEvents = dedupeEvents(htmlEvents.filter(isValidScheduleEvent));
   if (dedupedHtmlEvents.length > 0) {
     return {
       source: `상명대 공식 학사일정 HTML 자동 수집${htmlSource ? ` (${htmlSource})` : ""}`,
@@ -214,10 +215,11 @@ async function collectOfficialAcademicSchedules({ campus, year }) {
   }
 
   const renderedEvents = await tryRenderedPageCollection({ url, year, warnings });
-  if (renderedEvents.length > 0) {
+  const cleanRenderedEvents = dedupeEvents(renderedEvents.filter(isValidScheduleEvent));
+  if (cleanRenderedEvents.length > 0) {
     return {
       source: "상명대 공식 학사일정 JS 렌더링 자동 수집",
-      events: renderedEvents,
+      events: cleanRenderedEvents,
       warnings,
     };
   }
@@ -284,9 +286,11 @@ async function tryRenderedPageCollection({ url, year, warnings }) {
 function parseSmuCalendarHtml(html, year) {
   const tableEvents = parseTableRows(html, year);
   const jsonEvents = parseEmbeddedScheduleJson(html, year);
-  const textEvents =
-    tableEvents.length === 0 && jsonEvents.length === 0 ? parseRenderedCalendarText(stripTags(html), year) : [];
-  const events = [...tableEvents, ...jsonEvents, ...textEvents];
+
+  // 상명대 학사일정 페이지는 메뉴/푸터/스크립트 텍스트가 함께 내려옵니다.
+  // 본문 전체 텍스트를 일정으로 파싱하면 window.dataLayer, 상명소개, 개인정보처리방침 같은
+  // 사이트 메뉴가 일정 카드로 섞이는 문제가 생기므로 구조화된 표/JSON만 사용합니다.
+  const events = [...tableEvents, ...jsonEvents].filter(isValidScheduleEvent);
 
   return dedupeEvents(events);
 }
@@ -336,16 +340,22 @@ function parseRenderedCalendarText(text, year) {
     .filter(Boolean);
 
   for (const line of lines) {
+    // 렌더링된 화면에서도 날짜로 시작하는 짧은 행만 일정 후보로 봅니다.
+    // 전체 메뉴/스크립트가 한 줄로 붙은 긴 문자열은 절대 일정으로 취급하지 않습니다.
+    if (line.length > 120 || isNavigationOrScriptText(line)) continue;
+    const matched = line.match(/^(\d{1,2}[./월]\s*\d{1,2}[일.]?(?:\s*[~\-–]\s*(?:\d{1,2}[./월]\s*)?\d{1,2}[일.]?)?)\s+(.{2,80})$/);
+    if (!matched) continue;
+
     const event = buildEventFromDateAndTitle({
-      dateText: line,
-      title: line.replace(/^\d{1,2}[./월]\s*\d{1,2}[일.]?\s*[-~–]?\s*/, "").trim(),
+      dateText: matched[1],
+      title: matched[2].trim(),
       year,
       note: "상명대 공식 렌더링 텍스트",
     });
-    if (event) events.push(event);
+    if (event && isValidScheduleEvent(event)) events.push(event);
   }
 
-  return events;
+  return dedupeEvents(events);
 }
 
 function normalizeUnknownJsonSchedule(json, year) {
@@ -392,16 +402,17 @@ function normalizeJsonScheduleItem(item, year) {
 }
 
 function buildEventFromDateAndTitle({ dateText, title, year, note }) {
-  if (!title || title.length < 2) return null;
-  const range = parseDateRange(dateText, year);
+  const cleanTitle = stripTags(String(title || "")).trim();
+  if (!isLikelyScheduleTitle(cleanTitle)) return null;
+  const range = parseDateRange(String(dateText || ""), year);
   if (!range) return null;
 
   return {
-    id: `smu-${range.date}-${slugify(title)}`,
-    title: stripTags(title).trim(),
+    id: `smu-${range.date}-${slugify(cleanTitle)}`,
+    title: cleanTitle,
     date: range.date,
     endDate: range.endDate,
-    importance: inferImportance(title),
+    importance: inferImportance(cleanTitle),
     note,
     url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
   };
@@ -473,10 +484,36 @@ function normalizeDateRange(start, end, year) {
 }
 
 function normalizeDate(value, year) {
-  const clean = value.replace(/[^\d]/g, "");
-  if (clean.length === 8) return `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}`;
-  if (clean.length === 4) return `${year}-${clean.slice(0, 2)}-${clean.slice(2, 4)}`;
-  return null;
+  const clean = String(value || "").replace(/[^\d]/g, "");
+  let normalized = null;
+  if (clean.length === 8) normalized = `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}`;
+  if (clean.length === 4) normalized = `${year}-${clean.slice(0, 2)}-${clean.slice(2, 4)}`;
+  return isValidIsoDate(normalized) ? normalized : null;
+}
+
+function isValidIsoDate(value) {
+  if (!/^20\d{2}-\d{2}-\d{2}$/.test(String(value || ""))) return false;
+  const [y, m, d] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+}
+
+function isLikelyScheduleTitle(title) {
+  if (!title || title.length < 2 || title.length > 80) return false;
+  if (isNavigationOrScriptText(title)) return false;
+  if (/^[{}[\];:=,.\s0-9A-Za-z_-]+$/.test(title)) return false;
+  return true;
+}
+
+function isNavigationOrScriptText(text) {
+  return /window\.|dataLayer|gtag|function\s*\(|상명소개|열린 총장실|개인정보처리방침|COPYRIGHT|본문 바로가기|모바일 메뉴|서브메뉴|사이트맵|입학안내|대학현황|캠퍼스 안내|정보공개|검색어 입력|담당부서|대표번호|SMPOPUP|Login|닫기/.test(String(text || ""));
+}
+
+function isValidScheduleEvent(event) {
+  if (!event) return false;
+  if (!isValidIsoDate(event.date) || !isValidIsoDate(event.endDate || event.date)) return false;
+  if ((event.endDate || event.date) < event.date) return false;
+  return isLikelyScheduleTitle(event.title);
 }
 
 function stripTags(value) {
