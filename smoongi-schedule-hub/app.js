@@ -119,6 +119,140 @@ const categories = [
   },
 ];
 
+
+const smartBannerRules = [
+  {
+    id: "grade-check",
+    start: "06-24",
+    end: "07-11",
+    priority: 100,
+    label: "성적확인",
+    title: "성적확인 기간이에요",
+    message: "성적 확인, 이의신청, 확정 일정은 샘물포털과 공식 학사일정표를 같이 확인해요.",
+    url: "https://portal.smu.ac.kr/",
+    button: "샘물포털 바로가기",
+    secondaryUrl: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+    secondaryButton: "학사일정표 보기",
+  },
+  {
+    id: "summer-class",
+    start: "06-20",
+    end: "07-20",
+    priority: 80,
+    label: "계절수업",
+    title: "하계 계절수업 관련 일정을 확인해요",
+    message: "수업 기간, 성적 입력, 성적 확인 일정은 공식 학사일정표 기준으로 보는 게 안전해요.",
+    url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+    button: "학사일정표 보기",
+    secondaryUrl: "https://www.smu.ac.kr/lounge/notice/notice.do",
+    secondaryButton: "통합공지 보기",
+  },
+  {
+    id: "summer-break",
+    start: "07-12",
+    end: "08-31",
+    priority: 70,
+    label: "방학추천",
+    title: "방학 중 비교과와 진로 프로그램을 확인해보세요",
+    message: "인턴십, 비교과, 마일리지, 진로 프로그램은 방학 때 미리 확인하면 놓치기 쉬운 신청을 줄일 수 있어요.",
+    url: "https://extracur.smu.ac.kr/extracur/index.do",
+    button: "비교과/마일리지 보기",
+    secondaryUrl: "https://smcareer.smu.ac.kr/",
+    secondaryButton: "SMe 포트폴리오",
+  },
+  {
+    id: "course-registration-summer",
+    start: "08-01",
+    end: "08-22",
+    priority: 95,
+    label: "수강신청",
+    title: "수강신청 기간이 가까워졌어요",
+    message: "장바구니, 1차 신청, 정정 기간은 대상 학년과 시간을 같이 확인해요.",
+    url: "https://sugang.smu.ac.kr/",
+    button: "수강신청 바로가기",
+    secondaryUrl: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+    secondaryButton: "일정표 보기",
+  },
+  {
+    id: "course-registration-winter",
+    start: "02-01",
+    end: "03-10",
+    priority: 95,
+    label: "수강신청",
+    title: "수강신청과 정정 일정을 확인해요",
+    message: "개강 전후에는 수강신청, 정정, 폐강 기준을 함께 확인하는 게 좋아요.",
+    url: "https://sugang.smu.ac.kr/",
+    button: "수강신청 바로가기",
+    secondaryUrl: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+    secondaryButton: "학사일정표 보기",
+  },
+  {
+    id: "new-semester",
+    start: "03-01",
+    end: "03-20",
+    priority: 90,
+    label: "개강초기",
+    title: "개강 초기에는 수강정정과 학사 공지를 확인해요",
+    message: "수강정정, 폐강, 출석 관련 안내가 몰리는 시기라 통합공지와 수강신청 페이지를 같이 확인해요.",
+    url: "https://sugang.smu.ac.kr/",
+    button: "수강신청 바로가기",
+    secondaryUrl: "https://www.smu.ac.kr/lounge/notice/notice.do",
+    secondaryButton: "통합공지 보기",
+  },
+  {
+    id: "midterm",
+    start: "04-10",
+    end: "04-30",
+    priority: 60,
+    label: "시험기간",
+    title: "중간고사 기간 전후 학사일정을 확인해요",
+    message: "시험, 휴강, 보강 일정은 과목 공지와 공식 학사일정표를 함께 확인하는 게 좋아요.",
+    url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+    button: "학사일정표 보기",
+    secondaryUrl: "https://ecampus.smu.ac.kr/",
+    secondaryButton: "e-Campus 바로가기",
+  },
+  {
+    id: "final-grade-input",
+    start: "05-20",
+    end: "06-30",
+    priority: 75,
+    label: "기말·성적",
+    title: "기말고사와 성적 입력 일정을 확인해요",
+    message: "기말고사, 강의평가, 성적 입력 기간은 학사일정표 기준으로 먼저 확인해요.",
+    url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+    button: "학사일정표 보기",
+    secondaryUrl: "https://portal.smu.ac.kr/",
+    secondaryButton: "샘물포털 바로가기",
+  },
+  {
+    id: "winter-final",
+    start: "12-01",
+    end: "12-31",
+    priority: 80,
+    label: "기말·동계",
+    title: "기말고사와 동계 계절수업 일정을 확인해요",
+    message: "기말, 성적, 동계 계절수업 관련 일정은 학사일정표와 통합공지를 같이 확인해요.",
+    url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+    button: "학사일정표 보기",
+    secondaryUrl: "https://www.smu.ac.kr/lounge/notice/notice.do",
+    secondaryButton: "통합공지 보기",
+  },
+  {
+    id: "winter-break",
+    start: "01-01",
+    end: "01-31",
+    priority: 65,
+    label: "방학추천",
+    title: "겨울방학 비교과와 진로 프로그램을 확인해요",
+    message: "방학 기간에는 비교과, 마일리지, 진로·취업 프로그램을 미리 확인하기 좋아요.",
+    url: "https://extracur.smu.ac.kr/extracur/index.do",
+    button: "비교과/마일리지 보기",
+    secondaryUrl: "https://smcareer.smu.ac.kr/",
+    secondaryButton: "SMe 포트폴리오",
+  },
+];
+
 const checkCards = [
   {
     id: "deadline",
@@ -162,6 +296,7 @@ const detailItems = document.querySelector("#detailItems");
 const aiForm = document.querySelector("#aiForm");
 const aiInput = document.querySelector("#aiInput");
 const aiAnswer = document.querySelector("#aiAnswer");
+const smartBanner = document.querySelector("#smartBanner");
 
 function renderCategories() {
   categoryGrid.innerHTML = categories
@@ -347,6 +482,54 @@ function getAiResponse(question) {
   };
 }
 
+
+function renderSmartBanner() {
+  if (!smartBanner) return;
+  const banner = getActiveSmartBanner();
+
+  if (!banner) {
+    smartBanner.hidden = true;
+    smartBanner.innerHTML = "";
+    return;
+  }
+
+  smartBanner.hidden = false;
+  smartBanner.innerHTML = `
+    <div class="smart-banner-copy">
+      <span class="smart-banner-label">${banner.label}</span>
+      <strong>${banner.title}</strong>
+      <small>${banner.message}</small>
+    </div>
+    <div class="smart-banner-actions">
+      <a href="${banner.url}" target="_blank" rel="noopener noreferrer">${banner.button}</a>
+      ${banner.secondaryUrl ? `<a class="sub" href="${banner.secondaryUrl}" target="_blank" rel="noopener noreferrer">${banner.secondaryButton}</a>` : ""}
+    </div>
+  `;
+}
+
+function getActiveSmartBanner(today = new Date()) {
+  return smartBannerRules
+    .filter((rule) => isTodayInRange(rule.start, rule.end, today))
+    .sort((a, b) => b.priority - a.priority)[0];
+}
+
+function isTodayInRange(start, end, today) {
+  const current = monthDayToNumber(`${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`);
+  const startValue = monthDayToNumber(start);
+  const endValue = monthDayToNumber(end);
+
+  if (startValue <= endValue) {
+    return current >= startValue && current <= endValue;
+  }
+
+  return current >= startValue || current <= endValue;
+}
+
+function monthDayToNumber(value) {
+  const [month, day] = value.split("-").map(Number);
+  return month * 100 + day;
+}
+
 aiForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const question = aiInput.value.trim();
@@ -366,5 +549,6 @@ aiForm.addEventListener("submit", (event) => {
 renderCategories();
 renderLinks();
 renderCheckCards();
+renderSmartBanner();
 wireImageFallbacks();
 selectCategory("academic");

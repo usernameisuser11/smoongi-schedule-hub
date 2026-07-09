@@ -516,3 +516,202 @@ h2 {
     min-height: 180px;
   }
 }
+
+.calendar-preview {
+  width: min(1040px, 100%);
+  margin: 22px auto 0;
+  padding: clamp(16px, 2.2vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(30, 48, 92, 0.08);
+  text-align: center;
+}
+
+.calendar-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.calendar-preview-heading > div {
+  display: grid;
+  justify-items: start;
+  text-align: left;
+}
+
+.calendar-preview h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.2;
+}
+
+.calendar-preview p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.calendar-open-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 900;
+}
+
+.calendar-open-link:hover,
+.calendar-open-link:focus-visible {
+  border-color: var(--blue-2);
+  background: #fff;
+  outline: none;
+}
+
+.calendar-frame-wrap {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.calendar-frame {
+  display: block;
+  width: 100%;
+  height: min(760px, 78vh);
+  border: 0;
+  background: #fff;
+}
+
+.calendar-note {
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .calendar-preview-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .calendar-preview-heading > div {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .calendar-open-link {
+    width: 100%;
+  }
+
+  .calendar-frame {
+    height: 680px;
+  }
+}
+
+.smart-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: min(920px, 100%);
+  margin: 16px auto 0;
+  padding: 18px 20px;
+  border: 1px solid #f0dcaa;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fffaf0, #eff5ff);
+  box-shadow: 0 12px 30px rgba(30, 48, 92, 0.08);
+  text-align: left;
+}
+
+.smart-banner[hidden] {
+  display: none;
+}
+
+.smart-banner-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.smart-banner-label {
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--blue);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.smart-banner strong {
+  color: var(--ink);
+  font-size: clamp(19px, 2vw, 25px);
+  line-height: 1.25;
+}
+
+.smart-banner small {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.smart-banner-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.smart-banner-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.smart-banner-actions a.sub {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--blue);
+}
+
+.smart-banner-actions a:hover,
+.smart-banner-actions a:focus-visible {
+  transform: translateY(-1px);
+  outline: none;
+}
+
+@media (max-width: 760px) {
+  .smart-banner {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .smart-banner-copy {
+    justify-items: center;
+  }
+
+  .smart-banner-actions {
+    justify-content: center;
+  }
+
+  .smart-banner-actions a {
+    width: 100%;
+  }
+}

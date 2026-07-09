@@ -49,6 +49,29 @@
           <strong>질문을 입력하면 이곳에 바로 답변이 표시돼요.</strong>
           <span>정확한 신청 대상과 세부 시간은 항상 공식 공지 링크에서 한 번 더 확인하게 안내할게요.</span>
         </div>
+
+        <aside id="smartBanner" class="smart-banner" aria-live="polite"></aside>
+
+        <section class="calendar-preview" aria-labelledby="calendarPreviewTitle">
+          <div class="calendar-preview-heading">
+            <div>
+              <p class="eyebrow">Academic Calendar</p>
+              <h3 id="calendarPreviewTitle">학사일정표 바로 보기</h3>
+              <p>AI 답변을 확인한 뒤, 공식 학사일정표를 바로 아래에서 볼 수 있어요.</p>
+            </div>
+            <a class="calendar-open-link" href="https://www.smu.ac.kr/kor/life/academicCalendar.do" target="_blank" rel="noopener noreferrer">공식 페이지 열기</a>
+          </div>
+          <div class="calendar-frame-wrap">
+            <iframe
+              class="calendar-frame"
+              src="https://www.smu.ac.kr/kor/life/academicCalendar.do"
+              title="상명대학교 공식 학사일정표"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
+          </div>
+          <p class="calendar-note">표가 바로 보이지 않으면 공식 페이지 열기 버튼을 눌러 확인하면 돼요.</p>
+        </section>
       </section>
 
       <section class="section-block" aria-labelledby="quickMenuTitle">
