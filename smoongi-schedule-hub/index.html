@@ -52,26 +52,41 @@
 
         <aside id="smartBanner" class="smart-banner" aria-live="polite"></aside>
 
-        <section class="calendar-preview" aria-labelledby="calendarPreviewTitle">
-          <div class="calendar-preview-heading">
+
+
+        <section class="schedule-list-panel" aria-labelledby="scheduleListTitle">
+          <div class="schedule-list-heading">
             <div>
-              <p class="eyebrow">Academic Calendar</p>
-              <h3 id="calendarPreviewTitle">학사일정표 바로 보기</h3>
-              <p>AI 답변을 확인한 뒤, 공식 학사일정표를 바로 아래에서 볼 수 있어요.</p>
+              <p class="eyebrow">Official Schedule List</p>
+              <h3 id="scheduleListTitle">공식 학사일정 전체 보기</h3>
+              <p>공식 페이지를 직접 삽입하지 않고, 학사일정표에 올라온 모든 일정을 수뭉이 일정함 안에서 날짜별 목록으로 다시 보여줘요.</p>
             </div>
-            <a class="calendar-open-link" href="https://www.smu.ac.kr/kor/life/academicCalendar.do" target="_blank" rel="noopener noreferrer">공식 페이지 열기</a>
+            <div class="schedule-actions">
+              <label class="schedule-year-label" for="scheduleYearSelect">연도</label>
+              <select id="scheduleYearSelect" class="schedule-year-select" aria-label="학사일정 연도 선택">
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+              <button id="scheduleRefresh" class="schedule-refresh-button" type="button">공식 일정 새로고침</button>
+              <a class="calendar-open-link" href="https://www.smu.ac.kr/kor/life/academicCalendar.do" target="_blank" rel="noopener noreferrer">공식 원본 열기</a>
+            </div>
           </div>
-          <div class="calendar-frame-wrap">
-            <iframe
-              class="calendar-frame"
-              src="https://www.smu.ac.kr/kor/life/academicCalendar.do"
-              title="상명대학교 공식 학사일정표"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-            ></iframe>
+
+          <div class="schedule-toolbar" role="group" aria-label="학사일정 필터">
+            <button class="schedule-filter active" type="button" data-schedule-filter="all">전체</button>
+            <button class="schedule-filter" type="button" data-schedule-filter="active">진행중</button>
+            <button class="schedule-filter" type="button" data-schedule-filter="upcoming">예정</button>
+            <button class="schedule-filter" type="button" data-schedule-filter="important">중요</button>
           </div>
-          <p class="calendar-note">표가 바로 보이지 않으면 공식 페이지 열기 버튼을 눌러 확인하면 돼요.</p>
+
+          <div class="schedule-meta">
+            <span id="scheduleStatus">공식 학사일정을 불러오는 중이에요.</span>
+            <span id="scheduleCount"></span>
+          </div>
+          <div id="academicScheduleList" class="academic-schedule-list" aria-live="polite"></div>
         </section>
+
       </section>
 
       <section class="section-block" aria-labelledby="quickMenuTitle">

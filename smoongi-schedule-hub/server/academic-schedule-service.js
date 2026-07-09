@@ -9,10 +9,16 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, ".cache");
 const CACHE_FILE = path.join(DATA_DIR, "academic-schedules.json");
 const STATIC_ROOT = path.resolve(__dirname, "..");
 const SMU_CALENDAR_URLS = {
-  seoul: process.env.SMU_SEOUL_CALENDAR_URL || "https://www.smu.ac.kr/cs/admission/calendar.do",
+  seoul: process.env.SMU_SEOUL_CALENDAR_URL || "https://www.smu.ac.kr/kor/life/academicCalendar.do?mode=list",
   cheonan:
-    process.env.SMU_CHEONAN_CALENDAR_URL || "https://www.smu.ac.kr/software/admission/calendar.do",
+    process.env.SMU_CHEONAN_CALENDAR_URL || "https://www.smu.ac.kr/kor/life/academicCalendar.do?mode=list",
 };
+
+const SMU_CALENDAR_CANDIDATE_URLS = [
+  "https://www.smu.ac.kr/kor/life/academicCalendar.do?mode=list",
+  "https://www.smu.ac.kr/kor/life/academicCalendar.do?mode=calendar",
+  "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+];
 
 let memoryCache = loadCacheFromDisk() || {
   schedules: {},
@@ -182,12 +188,27 @@ async function collectOfficialAcademicSchedules({ campus, year }) {
     };
   }
 
-  const html = await fetchText(url);
-  const htmlEvents = parseSmuCalendarHtml(html, year);
-  if (htmlEvents.length > 0) {
+  const candidateUrls = Array.from(new Set([url, ...SMU_CALENDAR_CANDIDATE_URLS]));
+  const htmlEvents = [];
+  let htmlSource = "";
+  for (const candidateUrl of candidateUrls) {
+    try {
+      const html = await fetchText(candidateUrl);
+      const parsed = parseSmuCalendarHtml(html, year);
+      if (parsed.length > 0) {
+        htmlSource = candidateUrl;
+        htmlEvents.push(...parsed.map((event) => ({ ...event, url: candidateUrl })));
+      }
+    } catch (error) {
+      warnings.push(`학사일정 HTML 수집 실패: ${candidateUrl} (${error.message})`);
+    }
+  }
+
+  const dedupedHtmlEvents = dedupeEvents(htmlEvents);
+  if (dedupedHtmlEvents.length > 0) {
     return {
-      source: "상명대 공식 학사일정 HTML 자동 수집",
-      events: htmlEvents,
+      source: `상명대 공식 학사일정 HTML 자동 수집${htmlSource ? ` (${htmlSource})` : ""}`,
+      events: dedupedHtmlEvents,
       warnings,
     };
   }
@@ -366,6 +387,7 @@ function normalizeJsonScheduleItem(item, year) {
     endDate: range.endDate,
     importance: inferImportance(String(title)),
     note: "상명대 공식 JSON",
+    url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
   };
 }
 
@@ -381,6 +403,7 @@ function buildEventFromDateAndTitle({ dateText, title, year, note }) {
     endDate: range.endDate,
     importance: inferImportance(title),
     note,
+    url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
   };
 }
 
@@ -507,6 +530,101 @@ function sendJson(res, payload, statusCode = 200) {
 }
 
 function getFallbackEvents(year) {
+  if (String(year) === "2026") {
+    return [
+      {
+        id: `smu-${year}-final-lecture-evaluation`,
+        title: "2026-1학기 기말강의평가",
+        date: "2026-06-30",
+        endDate: "2026-07-04",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-grade-input-1st`,
+        title: "2026-1학기 성적입력",
+        date: "2026-06-28",
+        endDate: "2026-07-05",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-grade-check-1st`,
+        title: "2026-1학기 성적확인",
+        date: "2026-07-02",
+        endDate: "2026-07-04",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-summer-class`,
+        title: "2026-하계 계절수업",
+        date: "2026-06-30",
+        endDate: "2026-07-08",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-grade-confirm-1st`,
+        title: "2026-1학기 성적확정",
+        date: "2026-07-10",
+        endDate: "2026-07-10",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-summer-grade-input`,
+        title: "2026-하계 계절수업 성적입력 기간",
+        date: "2026-07-08",
+        endDate: "2026-07-13",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-summer-grade-check`,
+        title: "2026-하계 계절수업 성적 확인, 이의신청 및 정정 기간",
+        date: "2026-07-14",
+        endDate: "2026-07-15",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-student-record-change`,
+        title: "2026-2학기 대상 학적 변동 기간",
+        date: "2026-07-13",
+        endDate: "2026-07-17",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-cart-registration-1`,
+        title: "2026-2학기 장바구니 수강신청(1차)",
+        date: "2026-07-16",
+        endDate: "2026-07-17",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+      {
+        id: `smu-${year}-summer-grade-confirm`,
+        title: "2026-하계 계절수업 성적확정",
+        date: "2026-07-23",
+        endDate: "2026-07-23",
+        importance: "critical",
+        note: "공식 학사일정표 백업",
+        url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
+      },
+    ];
+  }
+
   return [
     {
       id: `smu-${year}-fall-registration`,
@@ -515,6 +633,7 @@ function getFallbackEvents(year) {
       endDate: `${year}-08-28`,
       importance: "critical",
       note: "fallback",
+      url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
     },
     {
       id: `smu-${year}-fall-start`,
@@ -523,6 +642,7 @@ function getFallbackEvents(year) {
       endDate: `${year}-09-01`,
       importance: "normal",
       note: "fallback",
+      url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
     },
     {
       id: `smu-${year}-midterm`,
@@ -531,10 +651,10 @@ function getFallbackEvents(year) {
       endDate: `${year}-10-23`,
       importance: "critical",
       note: "fallback",
+      url: "https://www.smu.ac.kr/kor/life/academicCalendar.do",
     },
   ];
 }
-
 function parseEverytimeImportedText(text, year) {
   return text
     .split(/\r?\n/)
