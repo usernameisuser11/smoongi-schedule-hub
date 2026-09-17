@@ -1,8 +1,8 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
-const { getAcademicSchedules } = require("./academic-schedule-service");
-const { getNotices } = require("./notice-service");
+const { getCurrentAcademicSchedules } = require("./schedule-current-service");
+const { getCleanNotices } = require("./notice-clean-service");
 
 const PORT = Number(process.env.PORT || 4174);
 const STATIC_ROOT = path.resolve(__dirname, "..");
@@ -19,13 +19,13 @@ const server = http.createServer(async (req, res) => {
     const year = url.searchParams.get("year") || String(new Date().getFullYear());
     const campus = url.searchParams.get("campus") || "seoul";
     const force = url.searchParams.get("refresh") === "true";
-    const payload = await getAcademicSchedules({ campus, year, force });
+    const payload = await getCurrentAcademicSchedules({ campus, year, force });
     sendJson(res, payload, payload.ok ? 200 : 206);
     return;
   }
 
   if (url.pathname === "/api/notices") {
-    const payload = await getNotices({
+    const payload = await getCleanNotices({
       campus: url.searchParams.get("campus") || "seoul",
       force: url.searchParams.get("refresh") === "true",
       source: url.searchParams.get("source") || "all",
