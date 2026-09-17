@@ -2,7 +2,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { getCurrentAcademicSchedules } = require("./schedule-current-service");
-const { getCleanNotices } = require("./notice-clean-service");
+const { getPolishedNotices } = require("./notice-polish-service");
 
 const PORT = Number(process.env.PORT || 4174);
 const STATIC_ROOT = path.resolve(__dirname, "..");
@@ -25,7 +25,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/notices") {
-    const payload = await getCleanNotices({
+    const payload = await getPolishedNotices({
       campus: url.searchParams.get("campus") || "seoul",
       force: url.searchParams.get("refresh") === "true",
       source: url.searchParams.get("source") || "all",
