@@ -170,5 +170,38 @@
 
     <script src="./app.js"></script>
     <script src="./notice-hub.js"></script>
+    <script>
+      (() => {
+        let focusedOnce = false;
+
+        function centerCurrentSchedule() {
+          const list = document.querySelector('#academicScheduleList');
+          const active = list?.querySelector('.schedule-row.is-active');
+          if (!list || !active) return;
+
+          const listRect = list.getBoundingClientRect();
+          const activeRect = active.getBoundingClientRect();
+          const targetTop = list.scrollTop + activeRect.top - listRect.top - (list.clientHeight - activeRect.height) / 2;
+
+          list.scrollTo({
+            top: Math.max(0, targetTop),
+            behavior: focusedOnce ? 'smooth' : 'auto',
+          });
+          focusedOnce = true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          const list = document.querySelector('#academicScheduleList');
+          if (!list) return;
+
+          const observer = new MutationObserver(() => {
+            requestAnimationFrame(centerCurrentSchedule);
+          });
+
+          observer.observe(list, { childList: true, subtree: true });
+          requestAnimationFrame(centerCurrentSchedule);
+        });
+      })();
+    </script>
   </body>
 </html>
