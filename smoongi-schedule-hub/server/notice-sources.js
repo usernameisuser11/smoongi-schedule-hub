@@ -32,6 +32,8 @@ const VERIFIED_DEPARTMENT_SOURCES = [
   },
 ];
 
+// 대학소개 페이지에는 학과가 아닌 서비스/사업단/공통 사이트 링크도 함께 섞여 있다.
+// 이런 site key는 학과 드롭다운에 노출하거나 학과공지 수집 대상으로 사용하지 않는다.
 const NON_DEPARTMENT_SITE_KEYS = new Set([
   "kor",
   "admission",
@@ -46,6 +48,8 @@ const NON_DEPARTMENT_SITE_KEYS = new Set([
   "sugang",
   "smarts",
   "peerorum",
+  "lifelog",
+  "hss",
 ]);
 
 module.exports = {
