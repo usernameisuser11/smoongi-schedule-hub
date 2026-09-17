@@ -1,65 +1,127 @@
-# Moayo Campus Prototype
+# 수뭉이 일정함 · SMU Schedule Hub
 
-상명대학교 대학생의 학과, 동아리, 팀플, 학생회 일정을 조율하는 데 특화한 정적 프로토타입입니다.
-
-## 방향
-
-Moayo Campus는 개인 일정 관리 앱이 아니라 그룹 일정 조율 앱입니다. 학사일정과 학과/동아리 일정을 기본 레이어로 표시하고, 참여자는 본인이 안 되는 시간만 입력합니다.
+상명대학교 서울캠퍼스의 학사일정, 통합공지, 학과 공지를 수뭉이 UI 안에서 모아보는 Node 기반 웹앱입니다.
 
 ## 핵심 기능
 
-- 상명대 학과/동아리/팀플 일정 조율 방 설정
-- 상명대 학사일정 자동 수집 API 연동
-- 학과/동아리/학생회 고정 일정 등록
-- 참여자별 불가능 시간 입력
-- 학사일정, 그룹 고정 일정, 참여자 불가능 시간을 피한 추천 시간 계산
-- 가장 좋은 확정안을 `.ics` 캘린더 파일로 내보내기
+- 상명대학교 공식 학사일정 자동 수집
+- 서울캠퍼스 통합공지 목록 수집 및 분류
+- 서울캠퍼스 대학소개 페이지에서 학과 홈페이지를 자동 발견해 학과 공지 수집
+- 전체 / 통합공지 / 학과공지 전환
+- 학사, 일반, 사회봉사, 등록/장학, 학생생활, 글로벌, 진로취업, 비교과 필터
+- 학과 선택, 제목/작성자/학과 검색, 최신순/오래된순 정렬
+- 15개 단위 서버 페이징과 이전/다음/페이지 번호 UI
+- 수집 실패 소스는 경고로 표시하고, 가짜 공지 데이터로 대체하지 않음
+- 공식 원문 링크 제공
 
-## 학사일정 자동 수집
-
-프론트는 `/api/academic-schedules?campus=seoul&year=2026`을 먼저 호출합니다. API 호출에 실패하면 샘플 데이터로 fallback합니다.
-
-백엔드는 `server/academic-schedule-service.js`에 있습니다.
+## 실행
 
 ```bash
-node server/academic-schedule-service.js
+npm install
+npm start
 ```
 
-기본 전략은 아래 순서입니다.
+기본 포트는 `4174`이며 Render에서는 `PORT` 환경변수를 사용합니다.
 
-1. 상명대 공식 학사일정 페이지 자동 수집
-2. 서버 렌더링 HTML, 임베디드 JSON, 렌더링 텍스트 순서로 파싱
-3. 필요하면 `SMU_RENDER_JS=true`로 Playwright 기반 JS 렌더링 수집 사용
-4. 수집 결과를 파일 캐시와 메모리 캐시에 저장
-5. 프론트는 우리 API만 호출
-6. 공식 페이지 구조가 바뀌거나 수집 실패 시 마지막 캐시 또는 fallback 데이터 사용
+```text
+http://localhost:4174
+```
 
-환경변수:
+## API
+
+### 학사일정
+
+```text
+GET /api/academic-schedules?campus=seoul&year=2026
+```
+
+강제 새로고침:
+
+```text
+GET /api/academic-schedules?campus=seoul&year=2026&refresh=true
+```
+
+### 공지 허브
+
+```text
+GET /api/notices?campus=seoul&page=1&pageSize=15
+```
+
+지원 파라미터:
+
+- `source=all|integrated|department`
+- `department=cs`처럼 학과 source key 지정
+- `category=학사` 등 통합공지 분류
+- `query=검색어`
+- `sort=latest|oldest`
+- `page=1`
+- `pageSize=15` (서버에서 5~50 범위로 제한)
+- `refresh=true`로 공식 페이지 강제 재수집
+
+예시:
+
+```text
+GET /api/notices?campus=seoul&source=department&department=cs&query=졸업&page=1&pageSize=15
+```
+
+## 공지 수집 구조
+
+백엔드 엔트리포인트는 `server/app-server.js`입니다.
+
+공지 수집은 `server/notice-service.js`가 담당하며 다음 순서로 동작합니다.
+
+1. 상명대학교 공식 통합공지 `https://www.smu.ac.kr/kor/life/notice.do` 수집
+2. 서울캠퍼스 대학소개 `https://www.smu.ac.kr/kor/edu/seoul01.do`에서 학과 홈페이지 링크 자동 발견
+3. 발견한 site key 기준으로 `/{siteKey}/community/notice.do` 형태의 공식 학과 공지 페이지 수집
+4. `articleNo`, 제목, 작성일, 작성자, 분류, 출처를 정규화
+5. 메모리 + 파일 캐시에 보관
+6. 일부 학과 페이지 수집이 실패해도 다른 소스 결과는 유지하고 `warnings`에 실패 사유를 반환
+7. 전체 수집 실패 시 마지막 캐시가 있으면 stale 캐시를 사용하고, 캐시도 없으면 빈 결과와 공식 링크만 반환
+
+학과 자동 발견이 실패할 경우를 위해 `server/notice-sources.js`에 검증된 보조 소스도 유지합니다. 현재 보조 소스에는 컴퓨터과학전공, 영어교육과, 공간환경학부가 포함되어 있습니다. 정상 환경에서는 서울캠퍼스 대학소개 페이지의 링크를 우선 사용하므로 보조 목록에 없는 학과도 자동 발견 대상입니다.
+
+## 환경변수
 
 ```bash
 PORT=4174
 CACHE_TTL_MS=43200000
-SMU_SEOUL_CALENDAR_URL=https://www.smu.ac.kr/cs/admission/calendar.do
+NOTICE_CACHE_TTL_MS=1800000
+NOTICE_SOURCE_LIMIT=45
+NOTICE_SOURCE_CONCURRENCY=5
+DATA_DIR=
+SMU_SEOUL_CALENDAR_URL=https://www.smu.ac.kr/kor/life/academicCalendar.do?mode=list
+SMU_CHEONAN_CALENDAR_URL=https://www.smu.ac.kr/kor/life/academicCalendar.do?mode=list
 SMU_RENDER_JS=false
 SMU_SCHEDULE_JSON_URLS=
 ```
 
-상명대 내부에서 공개 JSON 엔드포인트를 확인하면 `SMU_SCHEDULE_JSON_URLS`에 URL 템플릿을 넣으면 됩니다. `{year}`, `{campus}` 치환을 지원합니다.
+- `NOTICE_CACHE_TTL_MS`: 공지 캐시 유효시간. 기본 30분
+- `NOTICE_SOURCE_LIMIT`: 자동 발견 후 한 번에 확인할 최대 학과 소스 수
+- `NOTICE_SOURCE_CONCURRENCY`: 학과 공지 동시 요청 수
+- `DATA_DIR`: 캐시 파일 저장 위치. 미설정 시 `server/.cache`
 
-에브리타임 데이터는 로그인 세션이나 앱 내부 API를 무단으로 긁는 방식 대신, 사용자가 직접 공유/복사/내보내기 가능한 텍스트나 CSV를 가져오는 보조 입력으로만 다루는 편이 안전합니다.
+## 파일 구조
 
-## 실행
-
-브라우저에서 `index.html`을 바로 열거나 아래처럼 정적 서버로 실행합니다.
-
-```bash
-python3 -m http.server 4173
+```text
+index.html
+app.js
+styles.css
+notice-hub.js
+notice-hub.css
+server/
+  app-server.js
+  academic-schedule-service.js
+  notice-service.js
+  notice-sources.js
 ```
 
-## 기존 Moayo에 붙일 때
+## 알려진 한계
 
-- `room`: 기존 방 생성 데이터와 연결
-- `academicEvents`: `/api/academic-schedules` 응답으로 대체
-- `groupLayerEvents`: 학과/동아리 운영진이 등록한 고정 일정 테이블로 대체
-- `blockedEvents`: 참여자가 입력한 불가능 시간 테이블로 대체
-- `candidateWindows`: 기존 Moayo 날짜/시간 후보 범위로 대체
+- 상명대 공식 홈페이지의 HTML 구조나 학과 홈페이지 경로가 바뀌면 해당 소스 수집이 일시적으로 실패할 수 있습니다. 이 경우 API의 `warnings`와 `sourceSummaries`에서 상태를 확인할 수 있습니다.
+- 자동 발견은 공식 서울캠퍼스 대학소개 페이지에 노출된 학과 링크를 기준으로 합니다. 대학소개 페이지에 링크가 없는 별도 사업단/연구소 공지는 학과공지 범위에 포함하지 않습니다.
+- 각 학과의 최신 목록 페이지를 모으는 구조이므로 학과별 전체 과거 공지 아카이브를 한 번에 모두 내려받는 기능은 아직 제공하지 않습니다.
+- 학사일정 API는 기존 호환성을 위해 마지막 캐시/백업 일정 fallback을 유지하지만, 공지 API는 가짜 샘플 공지로 대체하지 않습니다.
+
+## 데이터 사용 원칙
+
+공개된 상명대학교 공식 페이지의 목록 정보만 읽고, 로그인 세션이나 비공개 API를 우회하지 않습니다. 최종 신청 조건, 마감 시간, 첨부파일은 반드시 원문 공지를 확인해야 합니다.

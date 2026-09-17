@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>수뭉이 일정함</title>
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./notice-hub.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -12,9 +13,10 @@
         <div class="hero-copy">
           <p class="eyebrow">SMU Schedule Hub</p>
           <h1>수뭉이 일정함</h1>
-          <p class="lead">상명대 학사, 신청, 비교과, 공지 링크를 한 화면에서 보고 궁금한 일정은 바로 물어보세요.</p>
+          <p class="lead">상명대 학사, 신청, 비교과, 통합공지와 학과 공지를 한 화면에서 보고 궁금한 일정은 바로 물어보세요.</p>
           <div class="hero-actions">
-            <a class="primary-button" href="#ai-question">AI에게 일정 물어보기</a>
+            <a class="primary-button" href="#notice-hub">공지 모아보기</a>
+            <a class="ghost-button" href="#ai-question">AI에게 일정 물어보기</a>
             <a class="ghost-button" href="#official-links">공식 링크 확인</a>
           </div>
         </div>
@@ -27,8 +29,8 @@
             <img src="./assets/smoongi/snow_mountain.png" alt="" data-fallback-src="./assets/smoongi/spring_deer.png" />
           </div>
           <div class="hero-card">
-            <strong>현재 프로토타입</strong>
-            <span>무료 서버라 10분 이상 사용이 없으면 첫 접속 때 약 30초 정도 걸릴 수 있어요.</span>
+            <strong>서울캠퍼스 정보 허브</strong>
+            <span>학사일정과 통합공지, 학과 공지를 공식 페이지에서 모아보고 원문으로 바로 이동할 수 있어요.</span>
           </div>
         </div>
       </section>
@@ -51,8 +53,6 @@
         </div>
 
         <aside id="smartBanner" class="smart-banner" aria-live="polite"></aside>
-
-
 
         <section class="schedule-list-panel" aria-labelledby="scheduleListTitle">
           <div class="schedule-list-heading">
@@ -86,7 +86,53 @@
           </div>
           <div id="academicScheduleList" class="academic-schedule-list" aria-live="polite"></div>
         </section>
+      </section>
 
+      <section class="section-block notice-hub" id="notice-hub" aria-labelledby="noticeHubTitle">
+        <div class="notice-hub-heading">
+          <div class="notice-hub-title-wrap">
+            <img class="notice-hub-mascot" src="./assets/smoongi/autumn_reading.png" alt="공지를 읽는 수뭉이" />
+            <div>
+              <p class="eyebrow">Seoul Campus Notice Hub</p>
+              <h2 id="noticeHubTitle">서울캠퍼스 공지 모아보기</h2>
+              <p>상명대 통합공지와 서울캠퍼스 학과 공지를 한 목록에서 검색하고 페이지별로 확인해요. 최종 내용은 원문 링크에서 확인할 수 있어요.</p>
+            </div>
+          </div>
+          <button id="noticeRefresh" class="notice-refresh-button" type="button">공식 공지 새로고침</button>
+        </div>
+
+        <div id="noticeSourceTabs" class="notice-source-tabs" role="tablist" aria-label="공지 출처">
+          <button class="notice-source-tab active" type="button" data-notice-source="all">전체</button>
+          <button class="notice-source-tab" type="button" data-notice-source="integrated">통합공지</button>
+          <button class="notice-source-tab" type="button" data-notice-source="department">학과공지</button>
+        </div>
+
+        <div class="notice-controls">
+          <select id="noticeDepartmentSelect" aria-label="학과 선택">
+            <option value="">전체 학과</option>
+          </select>
+          <select id="noticeSortSelect" aria-label="공지 정렬">
+            <option value="latest" selected>최신순</option>
+            <option value="oldest">오래된순</option>
+          </select>
+          <form id="noticeSearchForm" class="notice-search-form" role="search">
+            <input id="noticeSearchInput" type="search" placeholder="공지 제목, 작성자, 학과를 검색하세요" autocomplete="off" />
+            <button type="submit">검색</button>
+          </form>
+          <a class="ghost-button" href="https://www.smu.ac.kr/kor/life/notice.do" target="_blank" rel="noopener noreferrer">통합공지 원문</a>
+        </div>
+
+        <div id="noticeCategoryFilters" class="notice-category-filters" aria-label="통합공지 분류">
+          <button class="notice-filter-chip active" type="button" data-notice-category="">전체 분류</button>
+        </div>
+
+        <div class="notice-meta-bar">
+          <span id="noticeStatus">공식 공지를 불러오는 중이에요.</span>
+          <span id="noticeCount"></span>
+        </div>
+        <div id="noticeWarnings" class="notice-warnings" hidden></div>
+        <div id="noticeList" class="notice-list" aria-live="polite"></div>
+        <nav id="noticePagination" class="notice-pagination" aria-label="공지 페이지"></nav>
       </section>
 
       <section class="section-block" aria-labelledby="quickMenuTitle">
@@ -131,5 +177,6 @@
     </main>
 
     <script src="./app.js"></script>
+    <script src="./notice-hub.js"></script>
   </body>
 </html>
