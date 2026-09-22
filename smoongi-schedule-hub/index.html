@@ -4,8 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>수뭉이 일정함</title>
+    <meta name="theme-color" content="#242b49" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="수뭉이 일정함" />
+    <meta name="description" content="상명대학교 학사일정과 공지를 모아보는 수뭉이 일정함" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./notice-hub.css" />
+    <style>
+      .pwa-install { margin-top: 18px; }
+      .pwa-install-button { border: 1px solid #a6b4da; border-radius: 12px; background: #242b49; color: #fff; font: inherit; font-weight: 700; padding: 12px 17px; cursor: pointer; }
+      .pwa-install-button:focus-visible { outline: 3px solid #81dfc6; outline-offset: 3px; }
+      .pwa-install-guide, .pwa-offline-notice { max-width: 38rem; padding: 12px 15px; border-radius: 12px; background: #e8eefc; color: #243052; line-height: 1.6; }
+      .pwa-offline-notice { margin: 14px 0; border: 1px solid #aab9d8; }
+      [hidden] { display: none !important; }
+    </style>
   </head>
   <body>
     <main class="app-shell">
@@ -20,6 +36,11 @@
             <a class="ghost-button" href="#official-links">공식 링크 확인</a>
           </div>
         </div>
+        <div class="pwa-install" id="pwaInstallPanel" hidden>
+          <button class="pwa-install-button" id="pwaInstallButton" type="button">📲 수뭉이 앱 설치하기</button>
+          <p class="pwa-install-guide" id="pwaInstallGuide" role="status" aria-live="polite" hidden></p>
+        </div>
+        <p class="pwa-offline-notice" id="pwaOfflineNotice" role="status" hidden>오프라인 상태예요. 저장된 화면만 볼 수 있고 최신 학사일정과 공지는 인터넷 연결 후 확인해 주세요.</p>
         <div class="hero-visual" aria-label="수뭉이 이미지 모음">
           <img class="hero-main-image" src="./assets/smoongi/spring_deer.png" alt="봄 배경의 수뭉이" data-fallback-src="./assets/smoongi/spring_deer.png" />
           <div class="hero-mini-grid" aria-hidden="true">
@@ -168,6 +189,7 @@
       </section>
     </main>
 
+    <script src="./pwa.js" defer></script>
     <script src="./app.js"></script>
     <script src="./notice-hub.js"></script>
     <script src="./official-program-links.js"></script>
