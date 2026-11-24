@@ -132,7 +132,8 @@
       return;
     }
 
-    const cacheLabel = payload.cache === 'hit' ? '캐시' : payload.cache === 'stale' ? '마지막 저장본' : '공식 사이트';
+    const stale = payload.cache === 'stale' || (payload.fetchedAt && Date.now() - Date.parse(payload.fetchedAt) > 6*60*60*1000);
+    const cacheLabel = stale ? '마지막 저장본' : payload.cache === 'github-snapshot' ? '공식 공지 수집본' : payload.cache === 'hit' ? '캐시' : '공식 사이트';
     const fetched = payload.fetchedAt ? formatDateTime(payload.fetchedAt) : '방금';
     elements.status.textContent = `${cacheLabel} 기준 · ${fetched}`;
     elements.count.textContent = `총 ${Number(pagination.total || 0).toLocaleString('ko-KR')}건 · ${pagination.page || 1}/${pagination.totalPages || 1} 페이지`;
