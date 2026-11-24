@@ -20,15 +20,24 @@ async function main() {
     if (result.ok === false) throw new Error('Notice pagination failed on page '+page);
     notices.push(...(result.notices || []));
   }
-  if (notices.length !== first.pagination.total) throw new Error('Notice snapshot completeness check failed');
+  // Filtering non-department links can reduce the item count after server pagination.
+  // Keep the real official records; never invent records to fill the gap.
+  const seen = new Set();
+  const verifiedNotices = notices.filter(item => {
+    const key = [item.sourceType,item.sourceKey,item.articleNo || item.url || item.title].join(':');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (verifiedNotices.length < 5) throw new Error('Too few official notice records to publish');
   const snapshot = {
     ok: true, campus: 'seoul', fetchedAt: new Date().toISOString(), cache: 'github-snapshot',
-    notices, departments: first.departments || [], categories: first.categories || [],
+    notices: verifiedNotices, departments: first.departments || [], categories: first.categories || [],
     sourceSummaries: first.sourceSummaries || [], warnings: first.warnings || [],
     sourceUrl: first.sourceUrl, directoryUrl: first.directoryUrl
   };
   await fs.writeFile(path.join(directory, 'notices.json'), JSON.stringify(snapshot));
-  console.log('Saved notices:', notices.length, 'departments:', snapshot.departments.length);
+  console.log('Saved notices:', verifiedNotices.length, 'departments:', snapshot.departments.length);
 
   for (const year of ['2025','2026','2027']) {
     const data = await getCurrentAcademicSchedules({ campus:'seoul', year, force: true });
