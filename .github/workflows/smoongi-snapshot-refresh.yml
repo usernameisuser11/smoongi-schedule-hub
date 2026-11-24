@@ -1,0 +1,47 @@
+name: Refresh Smoongi official information snapshots
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 */3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoongi-snapshot-refresh.yml'
+      - 'smoongi-schedule-hub/scripts/export-cloudflare-snapshots.cjs'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: smoongi-snapshot-refresh
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Node dependencies
+        working-directory: smoongi-schedule-hub
+        run: npm install --no-audit --no-fund
+      - name: Collect official SMU schedules and notices
+        working-directory: smoongi-schedule-hub
+        run: node scripts/export-cloudflare-snapshots.cjs
+      - name: Commit latest verified snapshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add smoongi-schedule-hub/snapshots/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Refresh public SMU schedule and notice snapshots"
+            git push
+          fi
