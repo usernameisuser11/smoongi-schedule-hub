@@ -1,5 +1,5 @@
 /* Official schedule/notice API responses are always network-only. */
-const CACHE_NAME = "smoongi-shell-v1";
+const CACHE_NAME = "smoongi-shell-v2";
 const APP_SHELL = ["/", "/index.html", "/styles.css", "/notice-hub.css",
   "/app.js", "/notice-hub.js", "/official-program-links.js", "/pwa.js",
   "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
