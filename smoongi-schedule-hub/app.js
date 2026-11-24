@@ -303,7 +303,7 @@ const scheduleCount = document.querySelector("#scheduleCount");
 const scheduleFilters = Array.from(document.querySelectorAll("[data-schedule-filter]"));
 const scheduleRefresh = document.querySelector("#scheduleRefresh");
 const scheduleYearSelect = document.querySelector("#scheduleYearSelect");
-const academicCalendarUrl = "https://www.smu.ac.kr/kor/life/academicCalendar.do";
+const academicCalendarUrl = "https://www.smu.ac.kr/kor/life/academicCalendar_imsi.do";
 let academicScheduleEvents = [];
 let activeScheduleFilter = "all";
 
@@ -518,16 +518,19 @@ async function loadAcademicScheduleList(forceRefresh = false) {
     if (events.length === 0) throw new Error("일정 데이터 없음");
 
     academicScheduleEvents = events;
-    const isBackup = payload.cache === "fallback" || payload.source === "fallback" || !payload.ok;
+    const isBackup = ["fallback","recovery"].includes(payload.cache) || payload.source === "fallback" || !payload.ok;
+    const stale = payload.cache === "stale" || (payload.fetchedAt && Date.now() - Date.parse(payload.fetchedAt) > 6*60*60*1000);
+    const checked = payload.fetchedAt && !isBackup ? new Date(payload.fetchedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "";
     const sourceLabel = isBackup
-      ? `${year}년 백업 일정 기준으로 표시 중이에요. 공식 페이지에서 최종 확인해줘.`
-      : `상명대 공식 학사일정 기준으로 전체 ${events.length}개 일정을 불러왔어요.`;
+      ? `${year}년 이전 백업 일정이에요. 최신 일정은 공식 페이지에서 확인해 주세요.`
+      : `${stale ? "마지막 저장본" : "상명대 공식 학사일정"} · ${events.length}개${checked ? " · 확인 " + checked : ""}`;
     setScheduleStatus(sourceLabel, `${events.length}개 일정`);
     renderAcademicScheduleList();
     updateSmartBannerFromScheduleEvents();
   } catch (error) {
-    academicScheduleEvents = normalizeScheduleEvents(getLocalAcademicScheduleFallback(year), year);
-    setScheduleStatus(`공식 일정 자동수집이 불안정해서 ${year}년 백업 일정으로 표시 중이에요.`, `${academicScheduleEvents.length}개 일정`);
+    academicScheduleEvents = [];
+    if (smartBanner) { smartBanner.hidden = true; smartBanner.innerHTML = ""; }
+    setScheduleStatus(`${year}년 공식 일정을 불러오지 못했어요. 공식 원본을 확인해 주세요.`, "");
     renderAcademicScheduleList();
     updateSmartBannerFromScheduleEvents();
   } finally {
@@ -660,16 +663,22 @@ function groupEventsByMonth(events) {
   }, {});
 }
 
+function escapeScheduleHtml(value) {
+  return String(value ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function safeScheduleUrl(value) {
+  try { const url = new URL(value || academicCalendarUrl); return url.protocol === "https:" && url.hostname.endsWith(".smu.ac.kr") ? url.href : academicCalendarUrl; } catch { return academicCalendarUrl; }
+}
 function renderScheduleRow(event) {
   const meta = getScheduleMeta(event);
   const ddayClass = meta.phase === "active" ? "active" : meta.phase === "upcoming" ? "upcoming" : "";
   const rowClass = meta.phase === "active" ? "is-active" : meta.phase === "upcoming" && meta.daysUntil <= 1 ? "is-soon" : "";
   return `
-    <a class="schedule-row ${rowClass}" href="${event.url || academicCalendarUrl}" target="_blank" rel="noopener noreferrer">
+    <a class="schedule-row ${rowClass}" href="${escapeScheduleHtml(safeScheduleUrl(event.url))}" target="_blank" rel="noopener noreferrer">
       <span class="schedule-date">${formatScheduleRange(event.date, event.endDate)}</span>
       <span class="schedule-title">
-        <strong>${event.title}</strong>
-        <small>${event.note || "상명대 공식 학사일정"}</small>
+        <strong>${escapeScheduleHtml(event.title)}</strong>
+        <small>${escapeScheduleHtml(event.note || "상명대 공식 학사일정")}</small>
       </span>
       <span class="schedule-dday ${ddayClass}">${meta.label}</span>
     </a>
@@ -758,7 +767,8 @@ function daysBetween(start, end) {
 }
 
 function updateSmartBannerFromScheduleEvents() {
-  if (!smartBanner || academicScheduleEvents.length === 0) return;
+  if (!smartBanner) return;
+  if (!academicScheduleEvents.length) { smartBanner.hidden = true; smartBanner.innerHTML = ""; return; }
   const today = getKoreanToday();
   const candidates = academicScheduleEvents
     .map((event) => ({ event, meta: getScheduleMeta(event) }))
@@ -778,11 +788,11 @@ function updateSmartBannerFromScheduleEvents() {
   smartBanner.innerHTML = `
     <div class="smart-banner-copy">
       <span class="smart-banner-label">${meta.label}</span>
-      <strong>${event.title}</strong>
+      <strong>${escapeScheduleHtml(event.title)}</strong>
       <small>${phrase} · ${formatScheduleRange(event.date, event.endDate)} · 공식 학사일정표 기준으로 확인해요.</small>
     </div>
     <div class="smart-banner-actions">
-      <a href="${event.url || academicCalendarUrl}" target="_blank" rel="noopener noreferrer">공식 일정표 열기</a>
+      <a href="${escapeScheduleHtml(safeScheduleUrl(event.url))}" target="_blank" rel="noopener noreferrer">공식 일정표 열기</a>
       <a class="sub" href="#scheduleListTitle">전체 목록 보기</a>
     </div>
   `;
